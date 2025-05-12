@@ -163,8 +163,8 @@ const TicketDetail: React.FC = () => {
       
       // 设置表单初始值
       formRef.current.setFieldsValue({
-        is_true: cachedTicket.is_true === true ? 1 : 0,
-        is_need: cachedTicket.is_need === true ? 1 : 0,
+        is_true: cachedTicket.is_true === 1 ? 1 : 0,
+        is_need: cachedTicket.is_need === 1 ? 1 : 0,
         responsible: cachedTicket.responsible
       });
 
