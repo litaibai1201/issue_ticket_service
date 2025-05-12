@@ -39,9 +39,10 @@ export const getTicketLogs = (ticketId: number) => {
 
 export const updateTicket = (
   id: number,
-  data: Partial<Ticket> & { log?: Partial<TicketLog> }
+  data: Partial<Ticket> & { handle_data?: Partial<TicketLog> }
 ) => {
-  return axios.put(`/issues/${id}`, data);
+  console.log('updateTicket API called with data:', JSON.stringify(data, null, 2));
+  return axios.put(`/issues/${id}/logs`, data);
 };
 
 export const getServiceName = (serviceToken: string) => {

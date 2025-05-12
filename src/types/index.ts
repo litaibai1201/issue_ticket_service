@@ -21,8 +21,8 @@ export interface User {
     webhook: string;
     responsible: [string];
     handler: [string];
-    is_true: boolean;
-    is_need: boolean;
+    is_true: number;
+    is_need: number;
     status: number;
     created_at: string;
     updated_at: string;

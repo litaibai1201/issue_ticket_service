@@ -96,6 +96,7 @@ const TicketDetail: React.FC = () => {
     );
   };
 
+  // 获取当前登录用户信息
   useEffect(() => {
     const workNo = getUserWorkNo();
     if (workNo) {
@@ -133,42 +134,56 @@ const TicketDetail: React.FC = () => {
     }
   }, [navigate]);
 
-  // 表单初始化操作移到组件挂载后
+  // 在用户名加载后初始化表单
   useEffect(() => {
-    if (id) {
-      // 先从缓存中获取工单数据
-      const cachedTicket = ticketStore.getCurrentTicket() || 
-                         (parseInt(id) ? ticketStore.getTicketById(parseInt(id)) : undefined);
+    if (!id || !username) return;
+
+    const setDefaultHandlerForForm = () => {
+      const currentFormValues = formRef.current.getFieldsValue();
+      formRef.current.setFieldsValue({
+        ...currentFormValues,
+        status: 3, // 默认选中"已完成"
+        handler: [{key: username, value: username, label: userDisplayName || username}]
+      });
+      console.log('Set default handler with username:', username, 'displayName:', userDisplayName);
+    };
+
+    // 先从缓存中获取工单数据
+    const cachedTicket = ticketStore.getCurrentTicket() || 
+                        (parseInt(id) ? ticketStore.getTicketById(parseInt(id)) : undefined);
+    
+    if (cachedTicket) {
+      // 如果缓存中有数据，直接使用
+      setTicket(cachedTicket);
       
-      if (cachedTicket) {
-        // 如果缓存中有数据，直接使用
-        setTicket(cachedTicket);
-        
-        // 如果有service_token，获取服务名称
-        if (cachedTicket.service_token) {
-          fetchServiceName(cachedTicket.service_token, setServiceName);
-        }
-        
-        // 设置表单初始值
-        formRef.current.setFieldsValue({
-          is_true: cachedTicket.is_true,
-          is_need: cachedTicket.is_need,
-          status: cachedTicket.status,
-          responsible: cachedTicket.responsible,
-          handler: cachedTicket.handler
-        });
-        
-        // 加载用户名称
-        fetchUserNamesWrapper(cachedTicket);
-        
-        // 仍然需要获取日志数据
-        fetchTicketLogsWrapper(parseInt(id));
-      } else {
-        // 如果缓存中没有数据，通过API获取
-        fetchTicketDataWrapper(parseInt(id));
+      // 如果有service_token，获取服务名称
+      if (cachedTicket.service_token) {
+        fetchServiceName(cachedTicket.service_token, setServiceName);
       }
+      
+      // 设置表单初始值
+      formRef.current.setFieldsValue({
+        is_true: cachedTicket.is_true === true ? 1 : 0,
+        is_need: cachedTicket.is_need === true ? 1 : 0,
+        responsible: cachedTicket.responsible
+      });
+
+      // 设置默认处理人为当前登录用户和默认状态
+      setTimeout(setDefaultHandlerForForm, 100);
+      
+      // 加载用户名称
+      fetchUserNamesWrapper(cachedTicket);
+      
+      // 仍然需要获取日志数据
+      fetchTicketLogsWrapper(parseInt(id));
+    } else {
+      // 如果缓存中没有数据，通过API获取
+      fetchTicketDataWrapper(parseInt(id));
+      
+      // 确保默认处理人设置在API加载后
+      setTimeout(setDefaultHandlerForForm, 500);
     }
-  }, [id]);  // 不要将form放入依赖数组
+  }, [id, username, userDisplayName]);
 
   const handleLogout = () => {
     // 清除token

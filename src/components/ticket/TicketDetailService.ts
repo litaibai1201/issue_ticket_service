@@ -1,7 +1,9 @@
 import { message } from 'antd';
+import moment from 'moment';
 import { getTicketById, getTicketLogs, getServiceName, searchUserNames, updateTicket } from '../../api';
 import { Ticket, TicketLog } from '../../types';
 import ticketStore from '../../store/ticketStore';
+import { getUserWorkNo } from '../../utils/token';
 import { TicketFormValues } from './TicketForm';
 import { handleWorkNoSearch as handleWorkNoSearchBase } from './WorkNoSearch';
 
@@ -45,18 +47,11 @@ export const fetchTicketData = async (
     // 将工单数据保存到store
     ticketStore.setCurrentTicket(ticketData);
     
-    // 设置表单初始值
+    // 设置表单基础初始值，不包括处理人和状态
     formRef.current.setFieldsValue({
-      is_true: ticketData.is_true,
-      is_need: ticketData.is_need,
-      status: ticketData.status,
-      responsible: ticketData.responsible,
-      // 处理人使用labelInValue模式，需要转换成对象数组
-      handler: Array.isArray(ticketData.handler) ? ticketData.handler.map(workno => ({
-        key: workno,
-        value: workno,
-        label: ticketStore.getCachedUserName(workno) || workno
-      })) : []
+      is_true: ticketData.is_true === true ? 1 : 0,
+      is_need: ticketData.is_need === true ? 1 : 0,
+      responsible: ticketData.responsible
     });
     
     // 加载用户名称
@@ -177,7 +172,7 @@ export const fetchTicketLogs = async (
       const handlerIds = new Set<string>();
       
       // 查找所有需要获取姓名的工号
-      fetchedLogs.forEach(log => {
+      fetchedLogs.forEach((log: { handler: any }) => {
         // 日志中的处理人可能是数组，也可能是单个字符串
         if (log.handler) {
           if (Array.isArray(log.handler)) {
@@ -254,13 +249,14 @@ export const submitTicketForm = async (
 
   setSubmitting(true);
   try {
+    // 创建请求参数
+
+    console.log(1111, processedValues.is_need, processedValues.is_true)
     const payload = {
-      is_true: processedValues.is_true,
-      is_need: processedValues.is_need,
+      is_true: processedValues.is_true === "1" || processedValues.is_true === 1 ? 1 : 0,
+      is_need: processedValues.is_need === "1" || processedValues.is_need === 1 ? 1 : 0,
       status: processedValues.status,
-      responsible: processedValues.responsible,
-      handler: processedValues.handler,
-      log: {
+      handle_data: {
         start_time: processedValues.start_time
           ? processedValues.start_time.format('YYYY-MM-DD HH:mm:ss')
           : undefined,
@@ -268,10 +264,16 @@ export const submitTicketForm = async (
           ? processedValues.end_time.format('YYYY-MM-DD HH:mm:ss')
           : undefined,
         abnormal: processedValues.abnormal,
-        solve_result: processedValues.solve_result,
+        // 如果"是否需要处理"为否，则将处理结果设置为"无需处理"
+        solve_result: processedValues.is_need === "0" || processedValues.is_need === 0 
+          ? '无需处理' 
+          : processedValues.solve_result,
         handler: processedValues.handler || username, // 如果没有填写处理人，默认使用当前登录用户的工号
       },
     };
+
+    // 打印请求数据，方便调试
+    console.log('API Payload:', JSON.stringify(payload, null, 2));
 
     const response = await updateTicket(ticketId, payload);
     message.success('工单更新成功');

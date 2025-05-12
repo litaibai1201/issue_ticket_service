@@ -125,7 +125,12 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
       } 
       className="mb-4"
     >
-      <Descriptions bordered column={1} size="small">
+      <Descriptions 
+        bordered 
+        column={1} 
+        size="small"
+        labelStyle={{ minWidth: '90px', width: '90px' }}
+      >
         <Descriptions.Item label="工单ID">{ticket.id}</Descriptions.Item>
         <Descriptions.Item label="告警名称">
           {ticket.title}
@@ -167,12 +172,12 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
           {ticket.webhook || '-'}
         </Descriptions.Item>
         <Descriptions.Item label="是否真实异常">
-          {ticket.is_true === true ? '是' : 
-           ticket.is_true === false ? '否' : '未确认'}
+          {ticket.is_true === 1 ? '是' : 
+           ticket.is_true === 0 ? '否' : '未确认'}
         </Descriptions.Item>
         <Descriptions.Item label="是否需要处理">
-          {ticket.is_need === true ? '是' : 
-           ticket.is_need === false ? '否' : '未确认'}
+          {ticket.is_need === 1 ? '是' : 
+           ticket.is_need === 0 ? '否' : '未确认'}
         </Descriptions.Item>
         <Descriptions.Item label="工单状态">
           <span style={{ color: getStatusColor(ticket.status) }}>

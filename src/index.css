@@ -17,3 +17,15 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Ant Design 选择器 placeholder 样式 */
+.ant-select-selection-placeholder {
+  color: #bfbfbf !important;
+  opacity: 1 !important;
+}
+
+/* Input placeholder 样式 */
+::placeholder {
+  color: #bfbfbf !important;
+  opacity: 1 !important;
+}
