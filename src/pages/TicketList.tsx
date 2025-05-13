@@ -12,27 +12,27 @@ import {
   Pagination,
   message
 } from 'antd';
-import { searchData, getUserInfoByWorkNo } from '../api';
+import { searchData } from '../api';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
-import { 
+import {
   WorkNoOption,
-  createDebouncedWorkNoSearch 
+  createDebouncedWorkNoSearch
 } from '../components/ticket/WorkNoSearch';
 
 // 导入拆分出的组件
 import HeaderBar from '../components/layout/HeaderBar';
 import TicketFilterForm from '../components/ticket/TicketFilterForm';
 import ColumnSettings from '../components/ticket/ColumnSettings';
-import { 
-  columnItems, 
-  initialVisibleColumns, 
-  useTicketColumns 
+import {
+  columnItems,
+  initialVisibleColumns,
+  useTicketColumns
 } from '../components/ticket/TicketTableColumns';
-import { 
-  TicketWithDisplayInfo, 
-  fetchTickets 
+import {
+  TicketWithDisplayInfo,
+  fetchTickets
 } from '../components/ticket/TicketDataService';
 
 const TicketList: React.FC = () => {
@@ -40,7 +40,7 @@ const TicketList: React.FC = () => {
   const [userDisplayName, setUserDisplayName] = useState<string>(''); // 存储用户姓名
   const [workNoOptions, setWorkNoOptions] = useState<WorkNoOption[]>([]);
   const [workNoLoading, setWorkNoLoading] = useState<boolean>(false);
-  
+
   const [tickets, setTickets] = useState<TicketWithDisplayInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [total, setTotal] = useState<number>(0);
@@ -50,7 +50,7 @@ const TicketList: React.FC = () => {
   });
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  
+
   // 列设置相关状态
   const [visibleColumns, setVisibleColumns] = useState<string[]>(initialVisibleColumns);
 
@@ -72,13 +72,13 @@ const TicketList: React.FC = () => {
     const workNo = getUserWorkNo();
     if (workNo) {
       setUsername(workNo);
-      
+
       // 获取用户姓名
       const fetchUserName = async () => {
         try {
-          const response = await getUserInfoByWorkNo(workNo);
-          if (response.data && response.data.code === 'S10000' && Array.isArray(response.data.content) && response.data.content.length > 0) {
-            const userData = response.data.content[0]; // 获取第一条记录
+          const response = await searchData(workNo);
+          if (response.data && response.data.code === 'S10000') {
+            const userData = response.data.content; // 获取第一条记录
             if (userData.chnname) {
               setUserDisplayName(userData.chnname);
             }
@@ -87,7 +87,7 @@ const TicketList: React.FC = () => {
           console.error('Failed to fetch user name:', error);
         }
       };
-      
+
       fetchUserName();
     } else {
       // 如果没有token或解析失败，重定向到登录页
@@ -103,13 +103,13 @@ const TicketList: React.FC = () => {
   // 处理搜索功能
   const handleSearch = (keyword: string) => {
     console.log('调用handleSearch搜索关键字:', keyword);
-    
+
     // 获取当前表单中全部字段的值，包括筛选栏的值
     const formValues = form.getFieldsValue();
-    
+
     // 合并关键字到表单值
     const newFormValues = { ...formValues, keyword, page: 1 };
-    
+
     // 提交到过滤器，触发API调用
     handleFilter(newFormValues);
   };
@@ -121,7 +121,7 @@ const TicketList: React.FC = () => {
     if (processedValues.work_no && typeof processedValues.work_no === 'object' && processedValues.work_no.value) {
       processedValues.work_no = processedValues.work_no.value;
     }
-    
+
     // 过滤空值，只保留有值的字段
     const filteredValues: any = {};
     Object.keys(processedValues).forEach(key => {
@@ -130,9 +130,9 @@ const TicketList: React.FC = () => {
         filteredValues[key] = processedValues[key];
       }
     });
-    
+
     console.log('Form values after filtering:', filteredValues);
-    
+
     // 更新过滤条件，并重置页码
     setFilter((prev) => {
       // 创建一个只包含基本属性的新对象
@@ -140,7 +140,7 @@ const TicketList: React.FC = () => {
         page: 1, // 重置页码
         size: prev.size // 保持原有的每页数量
       };
-      
+
       // 将过滤后的值合并到新对象
       const newFilter = { ...baseFilter, ...filteredValues };
       console.log('New filter state:', newFilter);
@@ -177,13 +177,13 @@ const TicketList: React.FC = () => {
   const handleSendAlert = (id: number, type: string) => {
     message.success(`已发送工单#${id}的${type}告警通知`);
   };
-  
+
   // 表单值变化时只更新表单状态，不触发API调用
   const handleFormValuesChange = (changedValues: any, allValues: any) => {
     // 输出当前表单的值，用于调试
     console.log('Form values changed:', allValues);
     console.log('Changed values:', changedValues);
-    
+
     // 如果有任何字段被清空，需要从过滤器中移除该字段
     const removedFields: string[] = [];
     Object.keys(changedValues).forEach(key => {
@@ -192,7 +192,7 @@ const TicketList: React.FC = () => {
         removedFields.push(key);
       }
     });
-    
+
     // 如果有字段被清空，需要从过滤器中移除
     if (removedFields.length > 0) {
       setFilter(prevFilter => {
@@ -204,7 +204,7 @@ const TicketList: React.FC = () => {
         return newFilter;
       });
     }
-    
+
     // 如果工号变化了，自动触发搜索
     if ('work_no' in changedValues) {
       // 如果选择了工号，将该值从对象转换为工号字符串
@@ -212,7 +212,7 @@ const TicketList: React.FC = () => {
         // 创建一个新的表单值对象，将 work_no 转换为字符串
         const newValues = { ...allValues };
         newValues.work_no = changedValues.work_no.value;
-        
+
         // 自动提交当前表单
         setTimeout(() => {
           handleFilter(newValues);
@@ -247,15 +247,15 @@ const TicketList: React.FC = () => {
 
   return (
     <div>
-      <HeaderBar 
-        username={username} 
-        userDisplayName={userDisplayName} 
-        onLogout={handleLogout} 
+      <HeaderBar
+        username={username}
+        userDisplayName={userDisplayName}
+        onLogout={handleLogout}
       />
 
       <div className="p-6">
         <Card className="mb-6">
-          <TicketFilterForm 
+          <TicketFilterForm
             form={form}
             onFilter={handleFilter}
             onSearch={handleSearch}
@@ -268,7 +268,7 @@ const TicketList: React.FC = () => {
 
         <Card className="mb-6">
           <div className="flex justify-between mb-4">
-            <ColumnSettings 
+            <ColumnSettings
               allColumnItems={columnItems}
               visibleColumns={visibleColumns}
               setVisibleColumns={setVisibleColumns}

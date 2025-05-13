@@ -30,6 +30,7 @@ class TicketStore {
 
   // 根据ID获取工单
   getTicketById(id: number): Ticket | undefined {
+    console.log(this.tickets)
     return this.tickets.find(ticket => ticket.id === id);
   }
 
@@ -54,7 +55,7 @@ class TicketStore {
     if (index !== -1) {
       this.tickets[index] = updatedTicket;
     }
-    
+
     // 如果是当前工单，也更新当前工单
     if (this.currentTicket && this.currentTicket.id === updatedTicket.id) {
       this.currentTicket = updatedTicket;

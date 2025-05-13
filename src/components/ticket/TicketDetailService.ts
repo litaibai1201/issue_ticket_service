@@ -11,20 +11,20 @@ import { handleWorkNoSearch as handleWorkNoSearchBase } from './WorkNoSearch';
  * 加载工单数据
  */
 export const fetchTicketData = async (
-  ticketId: number,
+  ticketId: string,
   setTicket: (ticket: Ticket) => void,
   setLoading: (loading: boolean) => void,
   setServiceName: (name: string) => void,
   setUserNameMap: (map: Record<string, string>) => void,
   fetchUserNames: (ticket: Ticket) => Promise<void>,
-  fetchTicketLogs: (ticketId: number) => Promise<void>,
+  fetchTicketLogs: (ticketId: string) => Promise<void>,
   formRef: React.MutableRefObject<any>
 ) => {
   setLoading(true);
   try {
     // 获取工单信息
     const ticketResponse = await getTicketById(ticketId);
-    
+
     // 判断数据结构
     let ticketData;
     if (ticketResponse.data && ticketResponse.data.content) {
@@ -36,27 +36,27 @@ export const fetchTicketData = async (
     } else {
       throw new Error('无法解析工单数据');
     }
-    
+
     setTicket(ticketData);
-    
+
     // 如果有service_token，获取服务名称
     if (ticketData.service_token) {
       await fetchServiceName(ticketData.service_token, setServiceName);
     }
-    
+
     // 将工单数据保存到store
     ticketStore.setCurrentTicket(ticketData);
-    
+
     // 设置表单基础初始值，不包括处理人和状态
     formRef.current.setFieldsValue({
-      is_true: ticketData.is_true === true ? 1 : 0,
-      is_need: ticketData.is_need === true ? 1 : 0,
+      is_true: ticketData.is_true === "1" ? 1 : 0,
+      is_need: ticketData.is_need === "1" ? 1 : 0,
       responsible: ticketData.responsible
     });
-    
+
     // 加载用户名称
     await fetchUserNames(ticketData);
-    
+
     // 获取工单日志
     await fetchTicketLogs(ticketId);
   } catch (error) {
@@ -94,7 +94,7 @@ export const fetchUserNames = async (
   // 从 store 引入缓存的用户名称
   const allEmpIds = new Set<string>();
   const newUserNameMap: Record<string, string> = {};
-  
+
   // 先检查缓存中是否有这些用户名称
   if (ticket.responsible && Array.isArray(ticket.responsible)) {
     ticket.responsible.forEach(empid => {
@@ -108,7 +108,7 @@ export const fetchUserNames = async (
       }
     });
   }
-  
+
   if (ticket.handler && Array.isArray(ticket.handler)) {
     ticket.handler.forEach(empid => {
       if (empid && empid.trim() !== '') {
@@ -121,16 +121,16 @@ export const fetchUserNames = async (
       }
     });
   }
-  
+
   // 如果还有未缓存的用户名称，则调用 API 获取
   if (allEmpIds.size > 0) {
     try {
       const empIdsArray = Array.from(allEmpIds);
       const response = await searchUserNames(empIdsArray);
-      
+
       if (response.data && response.data.content) {
         const apiUserNameMap = response.data.content;
-        
+
         // 将 API 返回的用户名称缓存到 store
         Object.keys(apiUserNameMap).forEach(empid => {
           ticketStore.cacheUserName(empid, apiUserNameMap[empid]);
@@ -141,7 +141,7 @@ export const fetchUserNames = async (
       console.error('Failed to fetch user names:', error);
     }
   }
-  
+
   // 更新状态
   setUserNameMap(prevMap => ({ ...prevMap, ...newUserNameMap }));
 };
@@ -150,14 +150,14 @@ export const fetchUserNames = async (
  * 获取工单日志
  */
 export const fetchTicketLogs = async (
-  ticketId: number,
+  ticketId: string,
   setLogs: (logs: TicketLog[]) => void,
   setUserNameMap: (map: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void
 ) => {
   try {
     // 获取日志数据
     const logsResponse = await getTicketLogs(ticketId);
-    
+
     let fetchedLogs = [];
     // 同样判断日志数据结构
     if (logsResponse.data && logsResponse.data.content) {
@@ -165,12 +165,12 @@ export const fetchTicketLogs = async (
     } else if (Array.isArray(logsResponse.data)) {
       fetchedLogs = logsResponse.data;
     }
-    
+
     // 处理日志中的处理人
     if (fetchedLogs.length > 0) {
       // 收集所有需要查询姓名的工号
       const handlerIds = new Set<string>();
-      
+
       // 查找所有需要获取姓名的工号
       fetchedLogs.forEach((log: { handler: any }) => {
         // 日志中的处理人可能是数组，也可能是单个字符串
@@ -186,21 +186,21 @@ export const fetchTicketLogs = async (
           }
         }
       });
-      
+
       // 如果有需要获取姓名的工号，调用 API
       if (handlerIds.size > 0) {
         try {
           const empIdsArray = Array.from(handlerIds);
           const response = await searchUserNames(empIdsArray);
-          
+
           if (response.data && response.data.content) {
             const apiUserNameMap = response.data.content;
-            
+
             // 将 API 返回的用户名称缓存到 store
             Object.keys(apiUserNameMap).forEach(empid => {
               ticketStore.cacheUserName(empid, apiUserNameMap[empid]);
             });
-            
+
             // 更新用户名称映射
             setUserNameMap(prevMap => ({
               ...prevMap,
@@ -212,7 +212,7 @@ export const fetchTicketLogs = async (
         }
       }
     }
-    
+
     // 设置日志数据
     setLogs(fetchedLogs);
   } catch (logError) {
@@ -225,13 +225,13 @@ export const fetchTicketLogs = async (
  * 提交工单处理表单
  */
 export const submitTicketForm = async (
-  ticketId: number,
+  ticketId: string,
   values: TicketFormValues,
   username: string,
   setSubmitting: (submitting: boolean) => void,
   setTicket: (ticket: Ticket) => void,
-  fetchTicketData: (ticketId: number) => Promise<void>,
-  fetchTicketLogs: (ticketId: number) => Promise<void>,
+  fetchTicketData: (ticketId: string) => Promise<void>,
+  fetchTicketLogs: (ticketId: string) => Promise<void>,
   formRef: React.MutableRefObject<any>
 ) => {
   if (!ticketId) return;
@@ -251,7 +251,6 @@ export const submitTicketForm = async (
   try {
     // 创建请求参数
 
-    console.log(1111, processedValues.is_need, processedValues.is_true)
     const payload = {
       is_true: processedValues.is_true === "1" || processedValues.is_true === 1 ? 1 : 0,
       is_need: processedValues.is_need === "1" || processedValues.is_need === 1 ? 1 : 0,
@@ -265,8 +264,8 @@ export const submitTicketForm = async (
           : undefined,
         abnormal: processedValues.abnormal,
         // 如果"是否需要处理"为否，则将处理结果设置为"无需处理"
-        solve_result: processedValues.is_need === "0" || processedValues.is_need === 0 
-          ? '无需处理' 
+        solve_result: processedValues.is_need === "0" || processedValues.is_need === 0
+          ? '无需处理'
           : processedValues.solve_result,
         handler: processedValues.handler || username, // 如果没有填写处理人，默认使用当前登录用户的工号
       },
@@ -277,11 +276,11 @@ export const submitTicketForm = async (
 
     const response = await updateTicket(ticketId, payload);
     message.success('工单更新成功');
-    
+
     // 获取更新后的工单数据
     if (response && response.data) {
       const updatedTicket = response.data.content || response.data;
-      
+
       // 更新store中的工单数据
       if (updatedTicket) {
         ticketStore.updateTicket(updatedTicket);
@@ -294,10 +293,10 @@ export const submitTicketForm = async (
       // 如果没有响应数据，重新获取
       fetchTicketData(ticketId);
     }
-    
+
     // 无论如何，都需要刷新日志数据
-    fetchTicketLogs(ticketId); 
-    
+    fetchTicketLogs(ticketId);
+
     // 清空处理日志相关字段
     formRef.current.setFieldsValue({
       start_time: undefined,

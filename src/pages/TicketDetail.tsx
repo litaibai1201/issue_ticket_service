@@ -46,7 +46,7 @@ const TicketDetail: React.FC = () => {
   const [form] = Form.useForm<TicketFormValues>();
   const formRef = useRef(form);
   const navigate = useNavigate();
-  
+
   // 工号搜索相关状态
   const [handlerOptions, setHandlerOptions] = useState<Array<{value: string, label: string, name?: string, disabled?: boolean}>>([]);
   const [handlerLoading, setHandlerLoading] = useState<boolean>(false);
@@ -62,12 +62,12 @@ const TicketDetail: React.FC = () => {
   };
 
   // 获取工单日志包装函数
-  const fetchTicketLogsWrapper = async (ticketId: number) => {
+  const fetchTicketLogsWrapper = async (ticketId: string) => {
     await fetchTicketLogs(ticketId, setLogs, setUserNameMap);
   };
 
   // 获取工单数据包装函数
-  const fetchTicketDataWrapper = async (ticketId: number) => {
+  const fetchTicketDataWrapper = async (ticketId: string) => {
     await fetchTicketData(
       ticketId,
       setTicket,
@@ -83,9 +83,9 @@ const TicketDetail: React.FC = () => {
   // 提交表单
   const handleSubmit = async (values: TicketFormValues) => {
     if (!id) return;
-    
+
     await submitTicketForm(
-      parseInt(id),
+      id,
       values,
       username,
       setSubmitting,
@@ -101,7 +101,7 @@ const TicketDetail: React.FC = () => {
     const workNo = getUserWorkNo();
     if (workNo) {
       setUsername(workNo);
-      
+
       // 从缓存中获取用户名称，如果有的话
       const cachedUserName = ticketStore.getCachedUserName(workNo);
       if (cachedUserName) {
@@ -111,8 +111,8 @@ const TicketDetail: React.FC = () => {
         const fetchUserInfo = async () => {
           try {
             const response = await searchData(workNo);
-            if (response.data && response.data.code === 'S10000' && 
-                Array.isArray(response.data.content) && 
+            if (response.data && response.data.code === 'S10000' &&
+                Array.isArray(response.data.content) &&
                 response.data.content.length > 0) {
               const userData = response.data.content.find((item: any) => item.workno === workNo);
               if (userData && userData.chnname) {
@@ -125,7 +125,7 @@ const TicketDetail: React.FC = () => {
             console.error('Failed to fetch user name:', error);
           }
         };
-        
+
         fetchUserInfo();
       }
     } else {
@@ -149,18 +149,18 @@ const TicketDetail: React.FC = () => {
     };
 
     // 先从缓存中获取工单数据
-    const cachedTicket = ticketStore.getCurrentTicket() || 
+    const cachedTicket = ticketStore.getCurrentTicket() ||
                         (parseInt(id) ? ticketStore.getTicketById(parseInt(id)) : undefined);
-    
+
     if (cachedTicket) {
       // 如果缓存中有数据，直接使用
       setTicket(cachedTicket);
-      
+
       // 如果有service_token，获取服务名称
       if (cachedTicket.service_token) {
         fetchServiceName(cachedTicket.service_token, setServiceName);
       }
-      
+
       // 设置表单初始值
       formRef.current.setFieldsValue({
         is_true: cachedTicket.is_true === 1 ? 1 : 0,
@@ -170,16 +170,16 @@ const TicketDetail: React.FC = () => {
 
       // 设置默认处理人为当前登录用户和默认状态
       setTimeout(setDefaultHandlerForForm, 100);
-      
+
       // 加载用户名称
       fetchUserNamesWrapper(cachedTicket);
-      
+
       // 仍然需要获取日志数据
-      fetchTicketLogsWrapper(parseInt(id));
+      fetchTicketLogsWrapper(id);
     } else {
       // 如果缓存中没有数据，通过API获取
-      fetchTicketDataWrapper(parseInt(id));
-      
+      fetchTicketDataWrapper(id);
+
       // 确保默认处理人设置在API加载后
       setTimeout(setDefaultHandlerForForm, 500);
     }
@@ -213,12 +213,12 @@ const TicketDetail: React.FC = () => {
   return (
     <ConfigProvider locale={zhCN}>
       <div>
-        <HeaderBar 
-          username={username} 
-          userDisplayName={userDisplayName} 
-          onLogout={handleLogout} 
+        <HeaderBar
+          username={username}
+          userDisplayName={userDisplayName}
+          onLogout={handleLogout}
         />
-        
+
         <div className="p-6">
           <Row gutter={24}>
             <Col span={ticketCompleted ? 18 : 8}>
