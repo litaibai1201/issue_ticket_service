@@ -100,7 +100,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
                 showSearch
                 placeholder="输入工号搜索处理人"
                 defaultActiveFirstOption={false}
-                showArrow={false}
+                suffixIcon={null}
                 filterOption={false}
                 onSearch={onHandlerSearch}
                 notFoundContent={handlerLoading ? <span>加载中...</span> : <span>未找到</span>}

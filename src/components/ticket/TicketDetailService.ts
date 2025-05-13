@@ -48,11 +48,15 @@ export const fetchTicketData = async (
     ticketStore.setCurrentTicket(ticketData);
 
     // 设置表单基础初始值，不包括处理人和状态
-    formRef.current.setFieldsValue({
-      is_true: ticketData.is_true === "1" ? 1 : 0,
-      is_need: ticketData.is_need === "1" ? 1 : 0,
-      responsible: ticketData.responsible
-    });
+    if (formRef.current) {
+      formRef.current.setFieldsValue({
+        is_true: ticketData.is_true === "1" ? 1 : 0,
+        is_need: ticketData.is_need === "1" ? 1 : 0,
+        responsible: ticketData.responsible
+      });
+    } else {
+      console.warn('Form ref is not available when setting initial values');
+    }
 
     // 加载用户名称
     await fetchUserNames(ticketData);
@@ -77,7 +81,7 @@ export const fetchServiceName = async (
   try {
     const response = await getServiceName(serviceToken);
     if (response.data && response.data.content) {
-      setServiceName(response.data.content);
+      setServiceName(response.data.content.service_name);
     }
   } catch (error) {
     console.error('Failed to fetch service name:', error);
@@ -298,13 +302,17 @@ export const submitTicketForm = async (
     fetchTicketLogs(ticketId);
 
     // 清空处理日志相关字段
-    formRef.current.setFieldsValue({
-      start_time: undefined,
-      end_time: undefined,
-      abnormal: '',
-      solve_result: '',
-      handler: [] // 返回空数组，在 labelInValue 模式下同样有效
-    });
+    if (formRef.current) {
+      formRef.current.setFieldsValue({
+        start_time: undefined,
+        end_time: undefined,
+        abnormal: '',
+        solve_result: '',
+        handler: [] // 返回空数组，在 labelInValue 模式下同样有效
+      });
+    } else {
+      console.warn('Form ref is not available when clearing form values');
+    }
   } catch (error) {
     console.error('Failed to update ticket:', error);
     message.error('更新工单失败');

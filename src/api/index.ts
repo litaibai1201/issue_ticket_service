@@ -3,8 +3,12 @@ import apiHost from '../config/api'
 import axios from '../utils/axios';
 import { Ticket, TicketFilter, TicketLog } from '../types/index';
 
-export const searchData = (keyword?: string, workno?: string) => {
-  return axios.get(`${apiHost.hrHost}/searchData`, { params: { keyword, workno } });
+export const searchData = (keyword: string) => {
+  return axios.get(`${apiHost.hrHost}/searchData`, { params: { keyword } });
+};
+
+export const searchUserData = (workno: string) => {
+  return axios.get(`${apiHost.hrHost}/searchData`, { params: { workno } });
 };
 
 export const searchUserNames = (empids: string[]) => {

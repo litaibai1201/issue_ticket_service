@@ -70,9 +70,9 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({
             if (!empid || empid.trim() === '') return null;
             const name = getHandlerName(empid); // 获取姓名，优先使用缓存
             return (
-              <React.Fragment key={idx}>
-                <Tooltip title={`工号: ${empid}`}>
-                  <Tag color="green" style={{ margin: '2px', cursor: 'pointer' }}>
+              <React.Fragment key={`handler-${empid}-${idx}`}>
+                <Tooltip key={`tooltip-${empid}`} title={`工号: ${empid}`}>
+                  <Tag key={`tag-${empid}`} color="green" style={{ margin: '2px', cursor: 'pointer' }}>
                     {name}
                   </Tag>
                 </Tooltip>
@@ -90,8 +90,8 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({
       const name = getHandlerName(empid); // 获取姓名，优先使用缓存
       
       return (
-        <Tooltip title={`工号: ${empid}`}>
-          <Tag color="green" style={{ margin: '2px', cursor: 'pointer' }}>
+        <Tooltip key={`tooltip-${empid}`} title={`工号: ${empid}`}>
+          <Tag key={`tag-${empid}`} color="green" style={{ margin: '2px', cursor: 'pointer' }}>
             {name}
           </Tag>
         </Tooltip>
@@ -102,46 +102,46 @@ const TicketTimeline: React.FC<TicketTimelineProps> = ({
     return <span>{String(handler)}</span>;
   };
 
+  // 创建 Timeline items
+  const timelineItems = logs.length > 0 
+    ? logs.map((log, index) => ({
+        key: log.id,
+        dot: index === logs.length - 1 ? <ClockCircleOutlined style={{ fontSize: '16px' }} /> : undefined,
+        color: index === logs.length - 1 ? 'blue' : 'gray',
+        children: (
+          <>
+            <p>
+              <strong>确认时间:</strong> {log.start_time}
+            </p>
+            {log.end_time && (
+              <p>
+                <strong>处理时间:</strong> {log.end_time}
+              </p>
+            )}
+            <p>
+              <strong>异常原因:</strong> {log.abnormal}
+            </p>
+            {log.solve_result && (
+              <p>
+                <strong>处理结果:</strong> {log.solve_result}
+              </p>
+            )}
+            <p>
+              <strong>处理人:</strong> {renderTimelineHandler(log.handler)}
+            </p>
+            <p className="text-gray-500">{log.created_at}</p>
+          </>
+        )
+      }))
+    : [];
+
   return (
     <Card title="处理时间轴" className="mb-4" style={{ height: '100%' }}>
-      <Timeline mode="left">
-        {logs.length > 0 ? (
-          logs.map((log, index) => (
-            <Timeline.Item
-              key={log.id}
-              dot={
-                index === logs.length - 1 ? (
-                  <ClockCircleOutlined style={{ fontSize: '16px' }} />
-                ) : undefined
-              }
-              color={index === logs.length - 1 ? 'blue' : 'gray'}
-            >
-              <p>
-                <strong>确认时间:</strong> {log.start_time}
-              </p>
-              {log.end_time && (
-                <p>
-                  <strong>处理时间:</strong> {log.end_time}
-                </p>
-              )}
-              <p>
-                <strong>异常原因:</strong> {log.abnormal}
-              </p>
-              {log.solve_result && (
-                <p>
-                  <strong>处理结果:</strong> {log.solve_result}
-                </p>
-              )}
-              <p>
-                <strong>处理人:</strong> {renderTimelineHandler(log.handler)}
-              </p>
-              <p className="text-gray-500">{log.created_at}</p>
-            </Timeline.Item>
-          ))
-        ) : (
-          <div className="text-center text-gray-500">暂无处理记录</div>
-        )}
-      </Timeline>
+      {logs.length > 0 ? (
+        <Timeline mode="left" items={timelineItems} />
+      ) : (
+        <div className="text-center text-gray-500">暂无处理记录</div>
+      )}
     </Card>
   );
 };

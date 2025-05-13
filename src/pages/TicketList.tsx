@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash';
+import { CheckCircleOutlined } from '@ant-design/icons';
 import {
   Table,
   Card,
@@ -10,9 +11,10 @@ import {
   Row,
   Col,
   Pagination,
-  message
+  message,
+  notification
 } from 'antd';
-import { searchData, sendSingleAlarm } from '../api';
+import { searchUserData, sendSingleAlarm } from '../api';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
@@ -72,15 +74,22 @@ const TicketList: React.FC = () => {
     const workNo = getUserWorkNo();
     if (workNo) {
       setUsername(workNo);
-
       // 获取用户姓名
       const fetchUserName = async () => {
         try {
-          const response = await searchData(workNo);
-          if (response.data && response.data.code === 'S10000') {
-            const userData = response.data.content; // 获取第一条记录
-            if (userData.chnname) {
-              setUserDisplayName(userData.chnname);
+          // 从缓存中获取用户名称，如果有的话
+          const cachedUserName = ticketStore.getCachedUserName(workNo);
+          if (cachedUserName) {
+            setUserDisplayName(cachedUserName);
+          } else {
+            const response = await searchUserData(workNo);
+            if (response.data && response.data.code === 'S10000') {
+              const userData = response.data.content; // 获取第一条记录
+              if (userData.chnname) {
+                setUserDisplayName(userData.chnname);
+                // 缓存用户名称
+                ticketStore.cacheUserName(workNo, userData.chnname);
+              }
             }
           }
         } catch (error) {
@@ -118,8 +127,16 @@ const TicketList: React.FC = () => {
   const handleFilter = (values: any) => {
     // 处理 labelInValue 模式下的工号值
     const processedValues = { ...values };
-    if (processedValues.work_no && typeof processedValues.work_no === 'object' && processedValues.work_no.value) {
-      processedValues.work_no = processedValues.work_no.value;
+    if (processedValues.work_no && typeof processedValues.work_no === 'object') {
+      if (processedValues.work_no.value) {
+        // 正确的 labelInValue 格式
+        processedValues.work_no = processedValues.work_no.value;
+      } else if (typeof processedValues.work_no === 'string') {
+        // 已经是字符串，保持原样
+      } else {
+        // 不正确的对象格式，可能是空对象
+        delete processedValues.work_no;
+      }
     }
 
     // 过滤空值，只保留有值的字段
@@ -178,7 +195,12 @@ const TicketList: React.FC = () => {
     // 在工单列表中查找工单
     const ticket = tickets.find(t => t.id === id);
     if (!ticket) {
-      message.error('找不到对应的工单信息');
+      notification.error({
+        message: '发送失败',
+        description: '找不到对应的工单信息',
+        placement: 'topRight',
+        duration: 3
+      });
       return;
     }
 
@@ -204,15 +226,46 @@ const TicketList: React.FC = () => {
           }
         };
 
-        await sendSingleAlarm(requestData);
-        message.success(`已成功发送工单#${id}的${type}告警通知`);
+        const response = await sendSingleAlarm(requestData);
+        
+        // 检查响应结果
+        if (response.data && response.data.code === 'S10000') {
+          // 告警发送成功，使用notification弹出右上角提示
+          console.log(notification)
+          notification.success({
+            message: '发送成功',
+            description: `已成功发送工单#${id}的告警通知`,
+            icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+            placement: 'topRight',
+            duration: 3,
+          });
+        } else {
+          // 告警发送失败
+          notification.error({
+            message: '发送失败',
+            description: `发送告警失败: ${response.data?.msg || '未知错误'}`,
+            placement: 'topRight',
+            duration: 3
+          });
+        }
       } else if (type === '群组') {
         // 群组通知逻辑，如果需要实现
-        message.success(`已发送工单#${id}的${type}告警通知`);
+        notification.success({
+          message: '发送成功',
+          description: `已发送工单#${id}的群组告警通知`,
+          icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+          placement: 'topRight',
+          duration: 3
+        });
       }
     } catch (error) {
       console.error('发送告警失败:', error);
-      message.error(`发送${type}告警失败，请重试`);
+      notification.error({
+        message: '发送失败',
+        description: `发送告警失败，请重试`,
+        placement: 'topRight',
+        duration: 3
+      });
     }
   };
 
@@ -245,23 +298,39 @@ const TicketList: React.FC = () => {
 
     // 如果工号变化了，自动触发搜索
     if ('work_no' in changedValues) {
-      // 如果选择了工号，将该值从对象转换为工号字符串
-      if (changedValues.work_no && typeof changedValues.work_no === 'object' && changedValues.work_no.value) {
-        // 创建一个新的表单值对象，将 work_no 转换为字符串
-        const newValues = { ...allValues };
-        newValues.work_no = changedValues.work_no.value;
+      // 检查工号的值
+      const workNoValue = changedValues.work_no;
 
-        // 自动提交当前表单
-        setTimeout(() => {
-          handleFilter(newValues);
-        }, 0);
-      } else if (changedValues.work_no === undefined || changedValues.work_no === null || changedValues.work_no === '') {
+      if (workNoValue) {
+        // 如果工号有值
+        if (typeof workNoValue === 'object') {
+          if (workNoValue.value) {
+            // 符合 labelInValue 格式
+            const newValues = { ...allValues };
+            newValues.work_no = workNoValue;
+
+            // 自动提交当前表单
+            setTimeout(() => {
+              handleFilter(newValues);
+            }, 0);
+          } else {
+            console.warn('work_no object without value property:', workNoValue);
+          }
+        } else if (typeof workNoValue === 'string') {
+          // 如果是字符串，我们需要将它转换为对象格式
+          const newValues = { ...allValues };
+          newValues.work_no = { value: workNoValue, label: workNoValue };
+
+          // 更新表单字段的值
+          form.setFieldsValue({ work_no: newValues.work_no });
+
+          // 自动提交当前表单
+          setTimeout(() => {
+            handleFilter(newValues);
+          }, 0);
+        }
+      } else if (workNoValue === undefined || workNoValue === null || workNoValue === '') {
         // 如果工号被清空，不需要额外处理，上面的removedFields逻辑已经处理了
-      } else {
-        // 如果是普通的值变化（非清空），正常处理
-        setTimeout(() => {
-          handleFilter(allValues);
-        }, 0);
       }
     }
   };

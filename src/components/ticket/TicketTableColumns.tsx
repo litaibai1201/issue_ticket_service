@@ -83,8 +83,8 @@ export const useTicketColumns = (
         return (
           <div>
             {users.map((user, idx) => (
-              <Tooltip key={idx} title={<pre>{user.tooltip}</pre>}>
-                <Tag color="blue" style={{ margin: '2px', cursor: 'pointer' }}>
+              <Tooltip key={`tooltip-${user.empid || idx}`} title={<pre>{user.tooltip}</pre>}>
+                <Tag key={`tag-${user.empid || idx}`} color="blue" style={{ margin: '2px', cursor: 'pointer' }}>
                   {user.display}
                 </Tag>
               </Tooltip>
@@ -102,8 +102,8 @@ export const useTicketColumns = (
         return (
           <div>
             {users.map((user, idx) => (
-              <Tooltip key={idx} title={<pre>{user.tooltip}</pre>}>
-                <Tag color="green" style={{ margin: '2px', cursor: 'pointer' }}>
+              <Tooltip key={`tooltip-handler-${user.empid || idx}`} title={<pre>{user.tooltip}</pre>}>
+                <Tag key={`tag-handler-${user.empid || idx}`} color="green" style={{ margin: '2px', cursor: 'pointer' }}>
                   {user.display}
                 </Tag>
               </Tooltip>

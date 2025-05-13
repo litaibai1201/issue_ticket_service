@@ -84,8 +84,8 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
           if (!empid || empid.trim() === '') return null;
           const name = userNameMap[empid] || empid;
           return (
-            <Tooltip key={idx} title={<pre>{`工号: ${empid}${userNameMap[empid] ? `\n姓名: ${userNameMap[empid]}` : ''}`}</pre>}>
-              <Tag color="blue" style={{ margin: '2px', cursor: 'pointer' }}>
+            <Tooltip key={`tooltip-${empid}-${idx}`} title={<pre>{`工号: ${empid}${userNameMap[empid] ? `\n姓名: ${userNameMap[empid]}` : ''}`}</pre>}>
+              <Tag key={`tag-${empid}-${idx}`} color="blue" style={{ margin: '2px', cursor: 'pointer' }}>
                 {userNameMap[empid] || empid}
               </Tag>
             </Tooltip>
@@ -104,8 +104,8 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
         {handler.map((empid, idx) => {
           if (!empid || empid.trim() === '') return null;
           return (
-            <Tooltip key={idx} title={<pre>{`工号: ${empid}${userNameMap[empid] ? `\n姓名: ${userNameMap[empid]}` : ''}`}</pre>}>
-              <Tag color="green" style={{ margin: '2px', cursor: 'pointer' }}>
+            <Tooltip key={`tooltip-handler-${empid}-${idx}`} title={<pre>{`工号: ${empid}${userNameMap[empid] ? `\n姓名: ${userNameMap[empid]}` : ''}`}</pre>}>
+              <Tag key={`tag-handler-${empid}-${idx}`} color="green" style={{ margin: '2px', cursor: 'pointer' }}>
                 {userNameMap[empid] || empid}
               </Tag>
             </Tooltip>
@@ -129,7 +129,7 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
         bordered 
         column={1} 
         size="small"
-        labelStyle={{ minWidth: '90px', width: '90px' }}
+        styles={{ label: {minWidth: '90px', width: '90px'} }}
       >
         <Descriptions.Item label="工单ID">{ticket.id}</Descriptions.Item>
         <Descriptions.Item label="告警名称">
