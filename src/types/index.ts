@@ -26,6 +26,7 @@ export interface User {
     status: number;
     created_at: string;
     updated_at: string;
+    alarm_num: number; // 添加告警次数字段
   }
   
   export interface TicketLog {

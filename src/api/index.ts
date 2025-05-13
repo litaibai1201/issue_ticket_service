@@ -24,11 +24,11 @@ export const getTickets = (params: TicketFilter) => {
 };
 
 export const getTicketById = (id: string) => {
-  return axios.get(`/issues/${id}`);
+  return axios.get(`${apiHost.host}/issues/${id}`);
 };
 
 export const getTicketLogs = (ticketId: string) => {
-  return axios.get(`/issues/${ticketId}/logs`);
+  return axios.get(`${apiHost.host}/issues/${ticketId}/logs`);
 };
 
 export const updateTicket = (

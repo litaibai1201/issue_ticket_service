@@ -168,6 +168,9 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
         <Descriptions.Item label="告警类别">
           {ticket.type_nm || '-'}
         </Descriptions.Item>
+        <Descriptions.Item label="告警次数">
+          {ticket.alarm_num || 0}
+        </Descriptions.Item>
         <Descriptions.Item label="通知对象">
           {ticket.webhook || '-'}
         </Descriptions.Item>

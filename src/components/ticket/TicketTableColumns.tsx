@@ -37,6 +37,7 @@ export const useTicketColumns = (
           <p><strong>告警内容:</strong> {record.alarm_desc || '-'}</p>
           <p><strong>告警类别:</strong> {record.type_nm || '-'}</p>
           <p><strong>通知对象:</strong> {record.webhook || '-'}</p>
+          <p><strong>告警次数:</strong> {record.alarm_num || 0}</p>
         </div>} placement="right">
           <a onClick={() => handleViewTicket(record.id)} style={{ cursor: 'pointer' }}>{title}</a>
         </Tooltip>
@@ -138,6 +139,12 @@ export const useTicketColumns = (
       key: 'webhook',
       title: '通知对象',
       dataIndex: 'webhook',
+    },
+    {
+      key: 'alarm_num',
+      title: '告警次数',
+      dataIndex: 'alarm_num',
+      render: (alarmNum: number | undefined) => alarmNum || 0,
     },
     {
       key: 'is_true',
@@ -251,6 +258,7 @@ export const columnItems = [
   { key: 'level', label: '告警级别' },
   { key: 'type_nm', label: '告警类别' },
   { key: 'webhook', label: '通知对象' },
+  { key: 'alarm_num', label: '告警次数' },
   { key: 'is_true', label: '是否真实异常' },
   { key: 'is_need', label: '是否需要处理' },
   { key: 'status', label: '工单状态' },
@@ -271,6 +279,7 @@ export const initialVisibleColumns = [
   'responsible',
   'handler',
   'level',
+  'alarm_num',
   'is_true',
   'is_need',
   'status',
