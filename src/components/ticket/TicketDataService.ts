@@ -130,13 +130,15 @@ export const fetchSingleServiceName = async (
   try {
     const response = await getServiceName(serviceToken);
     if (response.data && response.data.content) {
-      const serviceName = response.data.content;
+      const serviceName = response.data.content.service_name;
+      const serviceType = response.data.content.service_type;
 
       // 更新UI
       updateTicketServiceName(index, serviceName, setTickets);
 
       // 缓存到store
       ticketStore.cacheServiceName(serviceToken, serviceName);
+      ticketStore.cacheServiceType(serviceToken, serviceType);
     }
   } catch (error) {
     console.error(`Failed to fetch service name for token ${serviceToken}:`, error);

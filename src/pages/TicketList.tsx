@@ -12,7 +12,7 @@ import {
   Pagination,
   message
 } from 'antd';
-import { searchData } from '../api';
+import { searchData, sendSingleAlarm } from '../api';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
@@ -174,8 +174,46 @@ const TicketList: React.FC = () => {
   };
 
   // 发送告警
-  const handleSendAlert = (id: number, type: string) => {
-    message.success(`已发送工单#${id}的${type}告警通知`);
+  const handleSendAlert = async (id: number, type: string) => {
+    // 在工单列表中查找工单
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) {
+      message.error('找不到对应的工单信息');
+      return;
+    }
+
+    try {
+      if (type === '个人' && ticket.responsible && ticket.responsible.length > 0) {
+        // 发送个人告警
+        let serviceName, serviceType;
+        if (ticketStore.hasServiceNameCached(ticket.service_token)) {
+          serviceName = ticketStore.getCachedServiceName(ticket.service_token);
+          serviceType = ticketStore.getCachedServiceType(ticket.service_token);
+        }
+        const requestData = {
+          userids: ticket.responsible,
+          service_name: serviceName || "-",
+          service_type: serviceType || "-",
+          token: ticket.service_token,
+          same_alarm_inter: 5,
+          type: 'link',
+          link: {
+            title: ticket.title,
+            text: ticket.alarm_desc,
+            url: 'http://test'
+          }
+        };
+
+        await sendSingleAlarm(requestData);
+        message.success(`已成功发送工单#${id}的${type}告警通知`);
+      } else if (type === '群组') {
+        // 群组通知逻辑，如果需要实现
+        message.success(`已发送工单#${id}的${type}告警通知`);
+      }
+    } catch (error) {
+      console.error('发送告警失败:', error);
+      message.error(`发送${type}告警失败，请重试`);
+    }
   };
 
   // 表单值变化时只更新表单状态，不触发API调用

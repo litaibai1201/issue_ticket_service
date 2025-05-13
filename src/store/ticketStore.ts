@@ -6,6 +6,12 @@ interface ServiceNameCache {
   [key: string]: string;
 }
 
+
+// 服务类型缓存接口
+interface ServiceTypeCache {
+  [key: string]: string;
+}
+
 // 用户名缓存接口
 interface UserNameCache {
   [empid: string]: string;
@@ -17,6 +23,7 @@ class TicketStore {
   private currentTicket: Ticket | null = null;
   private serviceNameCache: ServiceNameCache = {};
   private userNameCache: UserNameCache = {};
+  private serviceTypeCache: ServiceTypeCache = {};
 
   // 设置工单列表
   setTickets(tickets: Ticket[]) {
@@ -60,6 +67,16 @@ class TicketStore {
     if (this.currentTicket && this.currentTicket.id === updatedTicket.id) {
       this.currentTicket = updatedTicket;
     }
+  }
+
+  // 缓存服务类型
+  cacheServiceType(serviceToken: string, serviceType: string) {
+    this.serviceTypeCache[serviceToken] = serviceType;
+  }
+
+  // 获取缓存的服务类型
+  getCachedServiceType(serviceToken: string): string | null {
+    return this.serviceTypeCache[serviceToken] || null;
   }
 
   // 缓存服务名称

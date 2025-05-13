@@ -41,3 +41,19 @@ export const updateTicket = (
 export const getServiceName = (serviceToken: string) => {
   return axios.get(`${apiHost.host}/service_name/${serviceToken}`);
 };
+
+export const sendSingleAlarm = (data: {
+  userids: string[];
+  service_name: string;
+  service_type: string;
+  token: string;
+  same_alarm_inter: number;
+  type: string;
+  link: {
+    title: string;
+    text: string;
+    url: string;
+  };
+}) => {
+  return axios.post(`${apiHost.hrHost}/sendSingleAlarm`, data);
+};
