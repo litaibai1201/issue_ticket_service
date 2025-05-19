@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Avatar, Dropdown, message } from 'antd';
+import { Avatar, Dropdown, } from 'antd';
 import { LogoutOutlined, UserOutlined } from '@ant-design/icons';
 
 interface HeaderBarProps {
@@ -9,18 +9,18 @@ interface HeaderBarProps {
   onLogout: () => void;
 }
 
-const HeaderBar: React.FC<HeaderBarProps> = ({ 
-  username, 
-  userDisplayName, 
-  onLogout 
+const HeaderBar: React.FC<HeaderBarProps> = ({
+  username,
+  userDisplayName,
+  onLogout
 }) => {
   return (
     <div className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
       <Link to="/tickets" className="text-2xl font-bold cursor-pointer hover:text-blue-200 text-white no-underline">
-        工单管理平台
+        异常单管理平台
       </Link>
       <div className="flex items-center">
-        <Dropdown 
+        <Dropdown
           menu={{
             items: [
               {
@@ -30,8 +30,8 @@ const HeaderBar: React.FC<HeaderBarProps> = ({
                 onClick: onLogout
               }
             ]
-          }} 
-          placement="bottomRight" 
+          }}
+          placement="bottomRight"
           trigger={['hover']}
         >
           <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>

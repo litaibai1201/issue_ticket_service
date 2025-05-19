@@ -1,20 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/TicketList.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { debounce } from 'lodash';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import {
   Table,
   Card,
   Form,
-  Button,
-  Row,
-  Col,
   Pagination,
   message,
   notification
 } from 'antd';
-import { searchUserData, sendSingleAlarm } from '../api';
+import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm } from '../api';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
@@ -104,7 +101,7 @@ const TicketList: React.FC = () => {
     }
   }, [navigate]);
 
-  // 只在filter状态改变时才获取工单，而非在表单值变化时
+  // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
     fetchTickets(filter, setTickets, setTotal, setLoading);
   }, [filter]);
@@ -179,12 +176,40 @@ const TicketList: React.FC = () => {
     setFilter((prev) => ({ ...prev, page: 1, size: size }));
   };
 
-  // 查看工单详情
+  // 處理异常单級別
+  const levelMap = (level: number) => {
+    if ( level===1 ){
+      return '<font color=white>提示</font>'
+    } else if ( level===2 ){
+      return '<font color=orange>警告</font>'
+    } else if ( level===3 ){
+      return '<font color=red>重要</font>'
+    } else if ( level===4 ){
+      return '<font color=purple>紧急</font>'
+    } else {
+      return '<font color=yellow>未知级别</font>'
+    }
+  };
+
+  // 處理异常单狀態
+  const statusMap = (status: number) => {
+    if ( status===1 ){
+      return '<font color=red>待处理</font>'
+    } else if ( status===2 ){
+      return '<font color=orange>处理中</font>'
+    } else if ( status===3 ){
+      return '<font color=green>已完成</font>'
+    } else {
+      return '<font color=yellow>未知级别</font>'
+    }
+  };
+
+  // 查看异常单详情
   const handleViewTicket = (id: number) => {
-    // 在工单列表中查找工单
+    // 在异常单列表中查找异常单
     const ticket = tickets.find(t => t.id === id);
     if (ticket) {
-      // 设置当前工单
+      // 设置当前异常单
       ticketStore.setCurrentTicket(ticket);
     }
     navigate(`/tickets/${id}`);
@@ -192,12 +217,12 @@ const TicketList: React.FC = () => {
 
   // 发送告警
   const handleSendAlert = async (id: number, type: string) => {
-    // 在工单列表中查找工单
+    // 在异常单列表中查找异常单
     const ticket = tickets.find(t => t.id === id);
     if (!ticket) {
       notification.error({
         message: '发送失败',
-        description: '找不到对应的工单信息',
+        description: '找不到对应的异常单信息',
         placement: 'topRight',
         duration: 3
       });
@@ -205,55 +230,70 @@ const TicketList: React.FC = () => {
     }
 
     try {
+      // 发送个人告警
+      let serviceName, serviceType, response;
+      if (ticketStore.hasServiceNameCached(ticket.service_token)) {
+        serviceName = ticketStore.getCachedServiceName(ticket.service_token);
+        serviceType = ticketStore.getCachedServiceType(ticket.service_token);
+      }
+      const text = '<font color=#F75000>**' + serviceName + '**</font>\n\n告警地址: ' + ticket.location + '--' + ticket.factory + '--' + ticket.bu + '\n\n告警名稱: ' + ticket.title + '\n\n告警內容: [' + ticket.alarm_desc + '](' + 'http://test' + ')\n\n告警類別: ' + ticket.type_nm + '\n\n告警級別: ' + levelMap(ticket.level) + '\n\n告警次數: ' + ticket.alarm_num + '\n\n告警狀態: ' + statusMap(ticket.status) + '\n\n初告警時間: ' + ticket.created_at + '\n\n異常單地址: [http://test](' + 'http://test' + ')'
+
       if (type === '个人' && ticket.responsible && ticket.responsible.length > 0) {
-        // 发送个人告警
-        let serviceName, serviceType;
-        if (ticketStore.hasServiceNameCached(ticket.service_token)) {
-          serviceName = ticketStore.getCachedServiceName(ticket.service_token);
-          serviceType = ticketStore.getCachedServiceType(ticket.service_token);
+        // 创建FormData对象而不是JSON对象
+        const formData = new FormData();
+        if (ticket.responsible && ticket.responsible.length > 0){
+          ticket.responsible.forEach((empid: string) => {
+            formData.append('userids', empid);
+          })
         }
+        formData.append('service_name', serviceName || "-");
+        formData.append('service_type', serviceType || "-");
+        formData.append('token', ticket.service_token);
+        formData.append('same_alarm_inter', '1');
+        formData.append('type', 'markdown');
+        const markdownData = {
+          title: ticket.title,
+          text: text
+        }
+        // 对于嵌套对象，可以使用JSON字符串或分别添加属性
+        formData.append('markdown', JSON.stringify(markdownData));
+        response = await sendSingleAlarm(formData);
+      } else if (type === '群组' && ticket.webhook && ticket.responsible && ticket.responsible.length > 0) {
         const requestData = {
-          userids: ticket.responsible,
           service_name: serviceName || "-",
           service_type: serviceType || "-",
           token: ticket.service_token,
           same_alarm_inter: 5,
-          type: 'link',
-          link: {
+          webhook: ticket.webhook,
+          type: 'markdown',
+          markdown: {
             title: ticket.title,
-            text: ticket.alarm_desc,
-            url: 'http://test'
+            text: text + '\n\n',
+            atuserids: {
+              at: ticket.responsible
+            }
           }
         };
-
-        const response = await sendSingleAlarm(requestData);
-        
-        // 检查响应结果
-        if (response.data && response.data.code === 'S10000') {
-          // 告警发送成功，使用notification弹出右上角提示
-          console.log(notification)
-          notification.success({
-            message: '发送成功',
-            description: `已成功发送工单#${id}的告警通知`,
-            icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-            placement: 'topRight',
-            duration: 3,
-          });
-        } else {
-          // 告警发送失败
-          notification.error({
-            message: '发送失败',
-            description: `发送告警失败: ${response.data?.msg || '未知错误'}`,
-            placement: 'topRight',
-            duration: 3
-          });
-        }
-      } else if (type === '群组') {
-        // 群组通知逻辑，如果需要实现
+        response = await sendGroupAlarmMsg(requestData);
+      } else {
+        response = { 'data': null };
+      }
+      // 检查响应结果
+      if (response.data && response.data.code === 'S10000') {
+        // 告警发送成功，使用notification弹出右上角提示
+        console.log(notification)
         notification.success({
           message: '发送成功',
-          description: `已发送工单#${id}的群组告警通知`,
+          description: `已成功发送异常单#${id}的告警通知`,
           icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+          placement: 'topRight',
+          duration: 3,
+        });
+      } else {
+        // 告警发送失败
+        notification.error({
+          message: '发送失败',
+          description: `发送告警失败: ${response.data?.msg || '未知错误'}`,
           placement: 'topRight',
           duration: 3
         });

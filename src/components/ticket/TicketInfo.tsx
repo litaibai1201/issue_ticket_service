@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { JSX } from 'react';
 import { Card, Descriptions, Button, Tag, Tooltip } from 'antd';
 import { Ticket } from '../../types';
@@ -23,24 +24,24 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
       3: { color: 'red', text: '重要' },
       4: { color: 'purple', text: '紧急' },
     };
-    
+
     const { color, text } = levelMap[level] || {
       color: 'default',
       text: '未知级别',
     };
-    
+
     return <span style={{ color }}>{text}</span>;
   };
-  
-  // 处理工单状态
+
+  // 处理异常单状态
   const getStatusCode = (status: any): string => {
     if (status === null || status === undefined) return '';
     return status.toString();
   };
-  
+
   const getStatusText = (status: any): string => {
     const statusCode = getStatusCode(status);
-    
+
     switch (statusCode) {
       case '1':
       case 'pending':
@@ -55,10 +56,10 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
         return '未知状态';
     }
   };
-  
+
   const getStatusColor = (status: any): string => {
     const statusCode = getStatusCode(status);
-    
+
     switch (statusCode) {
       case '1':
       case 'pending':
@@ -73,16 +74,15 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
         return 'gray';
     }
   };
-  
+
   // 处理责任人显示
   const renderResponsible = (responsible: string[] | null | undefined): JSX.Element => {
     if (!responsible || !Array.isArray(responsible) || responsible.length === 0) return <span>-</span>;
-    
+
     return (
       <div>
         {responsible.map((empid, idx) => {
           if (!empid || empid.trim() === '') return null;
-          const name = userNameMap[empid] || empid;
           return (
             <Tooltip key={`tooltip-${empid}-${idx}`} title={<pre>{`工号: ${empid}${userNameMap[empid] ? `\n姓名: ${userNameMap[empid]}` : ''}`}</pre>}>
               <Tag key={`tag-${empid}-${idx}`} color="blue" style={{ margin: '2px', cursor: 'pointer' }}>
@@ -94,11 +94,11 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
       </div>
     );
   };
-  
+
   // 处理处理人显示
   const renderHandler = (handler: string[] | null | undefined): JSX.Element => {
     if (!handler || !Array.isArray(handler) || handler.length === 0) return <span>-</span>;
-    
+
     return (
       <div>
         {handler.map((empid, idx) => {
@@ -116,22 +116,22 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
   };
 
   return (
-    <Card 
+    <Card
       title={
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>工单详情</span>
+          <span>异常单详情</span>
           <Button size="small" onClick={onBack}>返回列表</Button>
         </div>
-      } 
+      }
       className="mb-4"
     >
-      <Descriptions 
-        bordered 
-        column={1} 
+      <Descriptions
+        bordered
+        column={1}
         size="small"
         styles={{ label: {minWidth: '90px', width: '90px'} }}
       >
-        <Descriptions.Item label="工单ID">{ticket.id}</Descriptions.Item>
+        <Descriptions.Item label="异常单ID">{ticket.id}</Descriptions.Item>
         <Descriptions.Item label="告警名称">
           {ticket.title}
         </Descriptions.Item>
@@ -175,14 +175,14 @@ const TicketInfo: React.FC<TicketInfoProps> = ({
           {ticket.webhook || '-'}
         </Descriptions.Item>
         <Descriptions.Item label="是否真实异常">
-          {ticket.is_true === 1 ? '是' : 
+          {ticket.is_true === 1 ? '是' :
            ticket.is_true === 0 ? '否' : '未确认'}
         </Descriptions.Item>
         <Descriptions.Item label="是否需要处理">
-          {ticket.is_need === 1 ? '是' : 
+          {ticket.is_need === 1 ? '是' :
            ticket.is_need === 0 ? '否' : '未确认'}
         </Descriptions.Item>
-        <Descriptions.Item label="工单状态">
+        <Descriptions.Item label="异常单状态">
           <span style={{ color: getStatusColor(ticket.status) }}>
             {getStatusText(ticket.status)}
           </span>

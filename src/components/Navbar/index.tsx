@@ -7,7 +7,7 @@ const { Header } = Layout;
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // 根据当前路径判断颜色
   const getHeaderStyle = () => {
     if (location.pathname.includes('/tickets/')) {
@@ -24,7 +24,7 @@ const Navbar: React.FC = () => {
       alignItems: 'center',
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
     }}>
-      <div 
+      <div
         onClick={() => navigate('/tickets')}
         style={{
           color: 'white',
@@ -33,7 +33,7 @@ const Navbar: React.FC = () => {
           cursor: 'pointer'
         }}
       >
-        工单管理系统
+        异常单管理系统
       </div>
     </Header>
   );

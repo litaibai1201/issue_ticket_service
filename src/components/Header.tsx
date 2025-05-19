@@ -30,7 +30,7 @@ const Header: React.FC = () => {
 
   return (
     <AntHeader className="bg-white flex justify-between items-center px-6 shadow-sm">
-      <div className="text-xl font-bold">工单平台</div>
+      <div className="text-xl font-bold">异常单管理平台</div>
       <Dropdown overlay={menu}>
         <Button type="link">
           {user.name || user.username || '用户'} <DownOutlined />

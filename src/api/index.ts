@@ -46,18 +46,29 @@ export const getServiceName = (serviceToken: string) => {
   return axios.get(`${apiHost.host}/service_name/${serviceToken}`);
 };
 
-export const sendSingleAlarm = (data: {
-  userids: string[];
+export const sendSingleAlarm = (data: FormData) => {
+    // 如果是FormData，则需要取消默认的Content-Type，让浏览器自动设置
+  return axios.post(`${apiHost.alarmHost}/sendSingleAlarm`, data, {
+    headers: {
+      'Content-Type': undefined // 让浏览器自动设置为multipart/form-data
+    }
+  });
+};
+
+export const sendGroupAlarmMsg = (data: {
+  webhook: string;
   service_name: string;
   service_type: string;
   token: string;
   same_alarm_inter: number;
   type: string;
-  link: {
+  markdown: {
     title: string;
     text: string;
-    url: string;
+    atuserids: {
+      at: string[]
+    };
   };
 }) => {
-  return axios.post(`${apiHost.hrHost}/sendSingleAlarm`, data);
+  return axios.post(`${apiHost.alarmHost}/sendGroupAlarmMsg`, data);
 };

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/pages/Login.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -50,7 +51,7 @@ const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <Card className="w-96 shadow-md">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">工单平台</h1>
+          <h1 className="text-2xl font-bold">异常单管理平台</h1>
           <p className="text-gray-500">请登录您的账号</p>
         </div>
 

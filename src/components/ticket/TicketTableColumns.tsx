@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Button, Space, Tag, Tooltip, Dropdown } from 'antd';
 import { NotificationOutlined } from '@ant-design/icons';
@@ -21,7 +22,7 @@ export const useTicketColumns = (
         // 计算当前页的序号，从 1 开始
         const pageIndex = (filter.page - 1) * filter.size + index + 1;
         return (
-          <Tooltip title={`工单ID: ${id}`}>
+          <Tooltip title={`异常单ID: ${id}`}>
             <span>{pageIndex}</span>
           </Tooltip>
         );
@@ -166,7 +167,7 @@ export const useTicketColumns = (
     },
     {
       key: 'status',
-      title: '工单状态',
+      title: '异常单状态',
       dataIndex: 'status',
       render: (status: number) => {
         const statusMap: Record<number, { color: string; text: string }> = {
@@ -205,7 +206,7 @@ export const useTicketColumns = (
               >
                 填写
               </Button>
-              <Dropdown 
+              <Dropdown
                 menu={{
                   items: [
                     {
@@ -224,9 +225,9 @@ export const useTicketColumns = (
                 arrow
               >
                 <Tooltip title="发送告警">
-                  <Button 
-                    type="text" 
-                    icon={<NotificationOutlined style={{ color: '#1890ff' }} />} 
+                  <Button
+                    type="text"
+                    icon={<NotificationOutlined style={{ color: '#1890ff' }} />}
                   />
                 </Tooltip>
               </Dropdown>
@@ -236,7 +237,7 @@ export const useTicketColumns = (
       ),
     },
   ];
-  
+
   // 根据visibleColumns的顺序返回列配置
   return visibleColumns
     .map(key => columnDefs.find(col => col.key === key))
@@ -261,7 +262,7 @@ export const columnItems = [
   { key: 'alarm_num', label: '告警次数' },
   { key: 'is_true', label: '是否真实异常' },
   { key: 'is_need', label: '是否需要处理' },
-  { key: 'status', label: '工单状态' },
+  { key: 'status', label: '异常单状态' },
   { key: 'created_at', label: '创建时间' },
   { key: 'updated_at', label: '更新时间' },
   { key: 'actions', label: '操作' },

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { Form, Input, DatePicker, Radio, Select, Button, Row, Col, Card } from 'antd';
 import moment from 'moment';
@@ -39,7 +40,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
 }) => {
   // 添加状态来跟踪是否需要处理的选择
   const [isNeedToHandle, setIsNeedToHandle] = useState<boolean | undefined>(form.getFieldValue('is_need'));
-  
+
   // 初始化状态
   useEffect(() => {
     const initialIsNeed = form.getFieldValue('is_need');
@@ -55,7 +56,7 @@ const TicketForm: React.FC<TicketFormProps> = ({
     // 将数字转换为布尔值进行判断
     const isTrueValue = newValue === 1;
     setIsNeedToHandle(isTrueValue);
-    
+
     // 只在选择"否"时设置"无需处理"，不再设置默认时间
     if (newValue === 0) {
       form.setFieldsValue({
@@ -64,9 +65,9 @@ const TicketForm: React.FC<TicketFormProps> = ({
       });
     }
   };
-  
+
   return (
-    <Card title="工单处理" className="mb-4">
+    <Card title="异常单处理" className="mb-4">
       <Form
         form={form}
         layout="vertical"
@@ -150,13 +151,13 @@ const TicketForm: React.FC<TicketFormProps> = ({
           </div>
         </Form.Item>
 
-        {/* 工单状态和处理时间在同一行，处理时间仅在选择"需要处理"时显示 */}
+        {/* 异常单状态和处理时间在同一行，处理时间仅在选择"需要处理"时显示 */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="status"
-              label="工单状态"
-              rules={[{ required: true, message: '请选择工单状态' }]}
+              label="异常单状态"
+              rules={[{ required: true, message: '请选择异常单状态' }]}
             >
               <Select>
                 <Option value={1}>待处理</Option>

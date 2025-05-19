@@ -25,45 +25,45 @@ class TicketStore {
   private userNameCache: UserNameCache = {};
   private serviceTypeCache: ServiceTypeCache = {};
 
-  // 设置工单列表
+  // 设置异常单列表
   setTickets(tickets: Ticket[]) {
     this.tickets = tickets;
   }
 
-  // 获取工单列表
+  // 获取异常单列表
   getTickets(): Ticket[] {
     return this.tickets;
   }
 
-  // 根据ID获取工单
+  // 根据ID获取异常单
   getTicketById(id: number): Ticket | undefined {
     console.log(this.tickets)
     return this.tickets.find(ticket => ticket.id === id);
   }
 
-  // 设置当前工单
+  // 设置当前异常单
   setCurrentTicket(ticket: Ticket) {
     this.currentTicket = ticket;
   }
 
-  // 获取当前工单
+  // 获取当前异常单
   getCurrentTicket(): Ticket | null {
     return this.currentTicket;
   }
 
-  // 清除当前工单
+  // 清除当前异常单
   clearCurrentTicket() {
     this.currentTicket = null;
   }
 
-  // 更新单个工单
+  // 更新单个异常单
   updateTicket(updatedTicket: Ticket) {
     const index = this.tickets.findIndex(t => t.id === updatedTicket.id);
     if (index !== -1) {
       this.tickets[index] = updatedTicket;
     }
 
-    // 如果是当前工单，也更新当前工单
+    // 如果是当前异常单，也更新当前异常单
     if (this.currentTicket && this.currentTicket.id === updatedTicket.id) {
       this.currentTicket = updatedTicket;
     }

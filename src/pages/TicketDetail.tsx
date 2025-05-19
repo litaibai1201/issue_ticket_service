@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -81,17 +82,17 @@ const TicketDetail: React.FC = () => {
     }
   };
 
-  // 获取工单日志包装函数
+  // 获取异常单日志包装函数
   const fetchTicketLogsWrapper = async (ticketId: string) => {
     try {
       await fetchTicketLogs(ticketId, setLogs, setUserNameMap);
     } catch (error) {
       console.error('Failed to fetch ticket logs:', error);
-      message.error('加载工单日志失败');
+      message.error('加载异常单日志失败');
     }
   };
 
-  // 获取工单数据包装函数
+  // 获取异常单数据包装函数
   const fetchTicketDataWrapper = async (ticketId: string) => {
     try {
       await fetchTicketData(
@@ -106,7 +107,7 @@ const TicketDetail: React.FC = () => {
       );
     } catch (error) {
       console.error('Failed to fetch ticket data:', error);
-      message.error('加载工单数据失败，请刷新页面重试');
+      message.error('加载异常单数据失败，请刷新页面重试');
       setLoading(false);
     }
   };
@@ -114,7 +115,7 @@ const TicketDetail: React.FC = () => {
   // 提交表单
   const handleSubmit = async (values: TicketFormValues) => {
     if (!id) {
-      message.error('工单ID无效');
+      message.error('异常单ID无效');
       return;
     }
 
@@ -186,7 +187,7 @@ const TicketDetail: React.FC = () => {
       console.warn('Form ref not available for setting default handler');
       return;
     }
-    
+
     try {
       const currentFormValues = formRef.current.getFieldsValue();
       formRef.current.setFieldsValue({
@@ -204,7 +205,7 @@ const TicketDetail: React.FC = () => {
   useEffect(() => {
     if (!id || !username || !formReady) return;
 
-    // 先从缓存中获取工单数据
+    // 先从缓存中获取异常单数据
     const cachedTicket = ticketStore.getCurrentTicket() ||
                         (parseInt(id) ? ticketStore.getTicketById(parseInt(id)) : undefined);
 
@@ -259,6 +260,7 @@ const TicketDetail: React.FC = () => {
         setLoading(false);
       }
     }, 10000); // 10秒后如果仍然在加载中，强制重置加载状态
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, username, userDisplayName, formReady]);
 
   const handleLogout = () => {
@@ -277,13 +279,13 @@ const TicketDetail: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-2xl font-bold mb-2">加载中...</div>
-          <div className="text-gray-500">正在读取工单信息</div>
+          <div className="text-gray-500">正在读取异常单信息</div>
         </div>
       </div>
     );
   }
 
-  // 检查工单是否已完成
+  // 检查异常单是否已完成
   const ticketCompleted = ticket ? isTicketCompleted(ticket.status) : false;
 
   return (

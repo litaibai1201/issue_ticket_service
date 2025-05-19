@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { message } from 'antd';
 import { getTickets, getServiceName, searchUserNames } from '../../api';
 import { Ticket, TicketFilter } from '../../types';
 import ticketStore from '../../store/ticketStore';
 
-// 定义扩展后的工单接口，包含显示用字段
+// 定义扩展后的异常单接口，包含显示用字段
 export interface TicketWithDisplayInfo extends Ticket {
   service_name_display?: string;
   responsible_display?: {
@@ -21,7 +22,7 @@ export interface TicketWithDisplayInfo extends Ticket {
 }
 
 /**
- * 获取工单列表数据
+ * 获取异常单列表数据
  */
 export const fetchTickets = async (
   filter: TicketFilter,
@@ -74,7 +75,7 @@ export const fetchTickets = async (
       setTickets(enhancedTickets);
       setTotal(response.data.content.total_count);
 
-      // 保存工单列表到store
+      // 保存异常单列表到store
       ticketStore.setTickets(ticketData);
 
       console.log('Calling fetchServiceNames and fetchUserNames...');
@@ -84,11 +85,11 @@ export const fetchTickets = async (
       // 异步加载责任人名称
       fetchUserNames(enhancedTickets, setTickets);
     } else {
-      message.error('获取工单列表失败');
+      message.error('获取异常单列表失败');
     }
   } catch (error) {
     console.error('Failed to fetch tickets:', error);
-    message.error('获取工单列表失败');
+    message.error('获取异常单列表失败');
   } finally {
     setLoading(false);
   }
@@ -176,7 +177,7 @@ export const fetchUserNames = async (
   // 收集所有需要查询的员工ID
   const allEmpIds = new Set<string>();
 
-  ticketList.forEach((ticket, index) => {
+  ticketList.forEach((ticket) => {
     const mergedUniqueArray = ticket.responsible && ticket.handler ?
       [...ticket.responsible, ...ticket.handler] :
       (ticket.responsible || ticket.handler || []);
@@ -218,7 +219,7 @@ export const fetchUserNames = async (
         }
       }
 
-      // 逐个处理工单，更新责任人名称
+      // 逐个处理异常单，更新责任人名称
       ticketList.forEach((ticket, index) => {
         updateTicketUserName(index, userNameMap, setTickets);
       });

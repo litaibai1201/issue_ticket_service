@@ -1,14 +1,12 @@
 import { message } from 'antd';
-import moment from 'moment';
 import { getTicketById, getTicketLogs, getServiceName, searchUserNames, updateTicket } from '../../api';
 import { Ticket, TicketLog } from '../../types';
 import ticketStore from '../../store/ticketStore';
-import { getUserWorkNo } from '../../utils/token';
 import { TicketFormValues } from './TicketForm';
 import { handleWorkNoSearch as handleWorkNoSearchBase } from './WorkNoSearch';
 
 /**
- * 加载工单数据
+ * 加载异常单数据
  */
 export const fetchTicketData = async (
   ticketId: string,
@@ -18,11 +16,12 @@ export const fetchTicketData = async (
   setUserNameMap: (map: Record<string, string>) => void,
   fetchUserNames: (ticket: Ticket) => Promise<void>,
   fetchTicketLogs: (ticketId: string) => Promise<void>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formRef: React.MutableRefObject<any>
 ) => {
   setLoading(true);
   try {
-    // 获取工单信息
+    // 获取异常单信息
     const ticketResponse = await getTicketById(ticketId);
 
     // 判断数据结构
@@ -34,7 +33,7 @@ export const fetchTicketData = async (
       // 如果数据直接在data字段中
       ticketData = ticketResponse.data;
     } else {
-      throw new Error('无法解析工单数据');
+      throw new Error('无法解析异常单数据');
     }
 
     setTicket(ticketData);
@@ -44,7 +43,7 @@ export const fetchTicketData = async (
       await fetchServiceName(ticketData.service_token, setServiceName);
     }
 
-    // 将工单数据保存到store
+    // 将异常单数据保存到store
     ticketStore.setCurrentTicket(ticketData);
 
     // 设置表单基础初始值，不包括处理人和状态
@@ -61,11 +60,11 @@ export const fetchTicketData = async (
     // 加载用户名称
     await fetchUserNames(ticketData);
 
-    // 获取工单日志
+    // 获取异常单日志
     await fetchTicketLogs(ticketId);
   } catch (error) {
     console.error('Failed to fetch ticket data:', error);
-    message.error('获取工单数据失败');
+    message.error('获取异常单数据失败');
   } finally {
     setLoading(false);
   }
@@ -151,7 +150,7 @@ export const fetchUserNames = async (
 };
 
 /**
- * 获取工单日志
+ * 获取异常单日志
  */
 export const fetchTicketLogs = async (
   ticketId: string,
@@ -176,6 +175,7 @@ export const fetchTicketLogs = async (
       const handlerIds = new Set<string>();
 
       // 查找所有需要获取姓名的工号
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       fetchedLogs.forEach((log: { handler: any }) => {
         // 日志中的处理人可能是数组，也可能是单个字符串
         if (log.handler) {
@@ -226,7 +226,7 @@ export const fetchTicketLogs = async (
 };
 
 /**
- * 提交工单处理表单
+ * 提交异常单处理表单
  */
 export const submitTicketForm = async (
   ticketId: string,
@@ -236,6 +236,7 @@ export const submitTicketForm = async (
   setTicket: (ticket: Ticket) => void,
   fetchTicketData: (ticketId: string) => Promise<void>,
   fetchTicketLogs: (ticketId: string) => Promise<void>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formRef: React.MutableRefObject<any>
 ) => {
   if (!ticketId) return;
@@ -279,13 +280,13 @@ export const submitTicketForm = async (
     console.log('API Payload:', JSON.stringify(payload, null, 2));
 
     const response = await updateTicket(ticketId, payload);
-    message.success('工单更新成功');
+    message.success('异常单更新成功');
 
-    // 获取更新后的工单数据
+    // 获取更新后的异常单数据
     if (response && response.data) {
       const updatedTicket = response.data.content || response.data;
 
-      // 更新store中的工单数据
+      // 更新store中的异常单数据
       if (updatedTicket) {
         ticketStore.updateTicket(updatedTicket);
         setTicket(updatedTicket);
@@ -315,7 +316,7 @@ export const submitTicketForm = async (
     }
   } catch (error) {
     console.error('Failed to update ticket:', error);
-    message.error('更新工单失败');
+    message.error('更新异常单失败');
   } finally {
     setSubmitting(false);
   }
@@ -333,8 +334,9 @@ export const handleWorkNoSearch = async (
 };
 
 /**
- * 检查工单是否已完成
+ * 检查异常单是否已完成
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isTicketCompleted = (status: any): boolean => {
   if (status === 3 || status === '3') return true;
   if (status === 'completed') return true;

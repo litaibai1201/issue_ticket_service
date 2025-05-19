@@ -1,13 +1,13 @@
-import React, { useCallback } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from 'react';
 import { Form, Input, Select, Row, Col } from 'antd';
-import { debounce } from 'lodash';
-import { TicketFilter } from '../../types';
 import { WorkNoOption } from './WorkNoSearch';
 
 const { Search } = Input;
 const { Option } = Select;
 
 interface TicketFilterFormProps {
+   
   form: any; // Form 实例
   onFilter: (values: any) => void;
   onSearch: (keyword: string) => void;
@@ -102,7 +102,7 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
           </Form.Item>
         </Col>
         <Col xs={24} sm={12} md={4}>
-          <Form.Item name="status" label="工单状态">
+          <Form.Item name="status" label="异常单状态">
             <Select placeholder="选择状态" allowClear>
               {statuses.map((status) => (
                 <Option key={status.id} value={status.id}>
