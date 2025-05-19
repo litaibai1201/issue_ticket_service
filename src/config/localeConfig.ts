@@ -1,9 +1,14 @@
 // src/config/localeConfig.ts
 import moment from 'moment';
+import dayjs from 'dayjs';
+import 'dayjs/locale/zh-cn';
 import 'moment/locale/zh-cn';
 
-// 确保设置为中文
+// 确保 moment 设置为中文
 moment.locale('zh-cn');
+
+// 确保 dayjs 设置为中文
+dayjs.locale('zh-cn');
 
 // 自定义中文本地化设置
 moment.updateLocale('zh-cn', {
@@ -14,9 +19,4 @@ moment.updateLocale('zh-cn', {
   weekdaysMin: '日_一_二_三_四_五_六'.split('_'),
 });
 
-// 检查并输出当前使用的语言环境
-console.log('Current moment locale:', moment.locale());
-console.log('Current moment months:', moment.months());
-console.log('Current moment weekdays:', moment.weekdays());
-
-export default moment;
+export { moment, dayjs };
