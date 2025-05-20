@@ -27,9 +27,9 @@ import {
   fetchUserNames,
   fetchTicketLogs,
   submitTicketForm,
-  handleWorkNoSearch,
-  isTicketCompleted
+  handleWorkNoSearch
 } from '../components/ticket/TicketDetailService';
+import { isTicketCompleted } from '../components/ticket/TicketServiceUtils';
 
 // 设置 moment 语言为中文
 moment.locale('zh-cn');

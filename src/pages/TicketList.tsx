@@ -14,6 +14,7 @@ import {
   Menu
 } from 'antd';
 import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm, getFilterData } from '../api';
+import { levelMap, statusMap } from '../components/ticket/ticketServiceUtils';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
@@ -215,33 +216,7 @@ const TicketList: React.FC = () => {
     setFilter((prev) => ({ ...prev, page: 1, size: size }));
   };
 
-  // 處理异常单級別
-  const levelMap = (level: number) => {
-    if ( level===1 ){
-      return '<font color=white>提示</font>'
-    } else if ( level===2 ){
-      return '<font color=orange>警告</font>'
-    } else if ( level===3 ){
-      return '<font color=red>重要</font>'
-    } else if ( level===4 ){
-      return '<font color=purple>紧急</font>'
-    } else {
-      return '<font color=yellow>未知级别</font>'
-    }
-  };
-
-  // 處理异常单狀態
-  const statusMap = (status: number) => {
-    if ( status===1 ){
-      return '<font color=red>待处理</font>'
-    } else if ( status===2 ){
-      return '<font color=orange>处理中</font>'
-    } else if ( status===3 ){
-      return '<font color=green>已完成</font>'
-    } else {
-      return '<font color=yellow>未知级别</font>'
-    }
-  };
+  // 这里已经使用从工具库导入的 levelMap 和 statusMap 函数
 
   // 查看异常单详情
   const handleViewTicket = (id: number) => {

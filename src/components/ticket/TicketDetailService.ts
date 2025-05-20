@@ -1,9 +1,18 @@
 import { message } from 'antd';
-import { getTicketById, getTicketLogs, getServiceName, searchUserNames, updateTicket } from '../../api';
+import { getTicketById, getTicketLogs, updateTicket } from '../../api';
 import { Ticket, TicketLog } from '../../types';
 import ticketStore from '../../store/ticketStore';
 import { TicketFormValues } from './TicketForm';
-import { handleWorkNoSearch as handleWorkNoSearchBase } from './WorkNoSearch';
+import {
+  fetchServiceName as fetchServiceNameUtil,
+  fetchUserNamesFromApi,
+  collectEmpIdsFromTicket,
+  handleWorkNoSearch as handleWorkNoSearchUtil,
+  isTicketCompleted as checkTicketCompleted
+} from './TicketServiceUtils';
+
+// 重新导出 fetchServiceName 供外部使用
+export const fetchServiceName = fetchServiceNameUtil;
 
 /**
  * 加载异常单数据
@@ -71,82 +80,30 @@ export const fetchTicketData = async (
 };
 
 /**
- * 获取服务名称
- */
-export const fetchServiceName = async (
-  serviceToken: string,
-  setServiceName: (name: string) => void
-) => {
-  try {
-    const response = await getServiceName(serviceToken);
-    if (response.data && response.data.content) {
-      setServiceName(response.data.content.service_name);
-    }
-  } catch (error) {
-    console.error('Failed to fetch service name:', error);
-  }
-};
-
-/**
  * 获取用户名称
  */
 export const fetchUserNames = async (
   ticket: Ticket,
   setUserNameMap: (map: Record<string, string> | ((prev: Record<string, string>) => Record<string, string>)) => void
 ) => {
-  // 从 store 引入缓存的用户名称
-  const allEmpIds = new Set<string>();
-  const newUserNameMap: Record<string, string> = {};
+  // 使用共享工具函数收集工号和缓存数据
+  const { allEmpIds, cachedUserMap } = collectEmpIdsFromTicket(ticket);
 
-  // 先检查缓存中是否有这些用户名称
-  if (ticket.responsible && Array.isArray(ticket.responsible)) {
-    ticket.responsible.forEach(empid => {
-      if (empid && empid.trim() !== '') {
-        const cachedName = ticketStore.getCachedUserName(empid);
-        if (cachedName) {
-          newUserNameMap[empid] = cachedName;
-        } else {
-          allEmpIds.add(empid);
-        }
-      }
-    });
+  // 更新已缓存的用户名称
+  if (Object.keys(cachedUserMap).length > 0) {
+    setUserNameMap(prevMap => ({ ...prevMap, ...cachedUserMap }));
   }
 
-  if (ticket.handler && Array.isArray(ticket.handler)) {
-    ticket.handler.forEach(empid => {
-      if (empid && empid.trim() !== '') {
-        const cachedName = ticketStore.getCachedUserName(empid);
-        if (cachedName) {
-          newUserNameMap[empid] = cachedName;
-        } else {
-          allEmpIds.add(empid);
-        }
-      }
-    });
-  }
-
-  // 如果还有未缓存的用户名称，则调用 API 获取
+  // 如果还有未缓存的用户名称，则调用API获取
   if (allEmpIds.size > 0) {
-    try {
-      const empIdsArray = Array.from(allEmpIds);
-      const response = await searchUserNames(empIdsArray);
-
-      if (response.data && response.data.content) {
-        const apiUserNameMap = response.data.content;
-
-        // 将 API 返回的用户名称缓存到 store
-        Object.keys(apiUserNameMap).forEach(empid => {
-          ticketStore.cacheUserName(empid, apiUserNameMap[empid]);
-          newUserNameMap[empid] = apiUserNameMap[empid];
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch user names:', error);
+    const empIdsArray = Array.from(allEmpIds);
+    const newUserMap = await fetchUserNamesFromApi(empIdsArray);
+    
+    // 更新状态
+    if (Object.keys(newUserMap).length > 0) {
+      setUserNameMap(prevMap => ({ ...prevMap, ...newUserMap }));
     }
   }
-
-  // 更新状态
-  setUserNameMap(prevMap => ({ ...prevMap, ...newUserNameMap }));
 };
 
 /**
@@ -191,28 +148,17 @@ export const fetchTicketLogs = async (
         }
       });
 
-      // 如果有需要获取姓名的工号，调用 API
+      // 如果有需要获取姓名的工号，调用API
       if (handlerIds.size > 0) {
-        try {
-          const empIdsArray = Array.from(handlerIds);
-          const response = await searchUserNames(empIdsArray);
-
-          if (response.data && response.data.content) {
-            const apiUserNameMap = response.data.content;
-
-            // 将 API 返回的用户名称缓存到 store
-            Object.keys(apiUserNameMap).forEach(empid => {
-              ticketStore.cacheUserName(empid, apiUserNameMap[empid]);
-            });
-
-            // 更新用户名称映射
-            setUserNameMap(prevMap => ({
-              ...prevMap,
-              ...apiUserNameMap
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to fetch log handler names:', error);
+        const empIdsArray = Array.from(handlerIds);
+        const userNameMap = await fetchUserNamesFromApi(empIdsArray);
+        
+        // 更新用户名称映射
+        if (Object.keys(userNameMap).length > 0) {
+          setUserNameMap(prevMap => ({
+            ...prevMap,
+            ...userNameMap
+          }));
         }
       }
     }
@@ -256,7 +202,6 @@ export const submitTicketForm = async (
   setSubmitting(true);
   try {
     // 创建请求参数
-
     const payload = {
       is_true: processedValues.is_true === "1" || processedValues.is_true === 1 ? 1 : 0,
       is_need: processedValues.is_need === "1" || processedValues.is_need === 1 ? 1 : 0,
@@ -336,7 +281,7 @@ export const handleWorkNoSearch = async (
   setHandlerOptions: (options: Array<{value: string, label: string}>) => void,
   setHandlerLoading: (loading: boolean) => void
 ) => {
-  await handleWorkNoSearchBase(value, setHandlerOptions, setHandlerLoading);
+  await handleWorkNoSearchUtil(value, setHandlerOptions, setHandlerLoading);
 };
 
 /**
@@ -344,7 +289,5 @@ export const handleWorkNoSearch = async (
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isTicketCompleted = (status: any): boolean => {
-  if (status === 3 || status === '3') return true;
-  if (status === 'completed') return true;
-  return false;
+  return checkTicketCompleted(status);
 };

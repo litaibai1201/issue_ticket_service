@@ -1,8 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { message } from 'antd';
-import { getTickets, getServiceName, searchUserNames } from '../../api';
+import { getTickets } from '../../api';
 import { Ticket, TicketFilter } from '../../types';
 import ticketStore from '../../store/ticketStore';
+import { 
+  fetchSingleServiceName, 
+  fetchUserNamesFromApi
+} from './TicketServiceUtils';
 
 // 定义扩展后的异常单接口，包含显示用字段
 export interface TicketWithDisplayInfo extends Ticket {
@@ -106,43 +110,12 @@ export const fetchServiceNames = async (
   for (let i = 0; i < ticketList.length; i++) {
     const ticket = ticketList[i];
     if (ticket.service_token) {
-      await fetchSingleServiceName(ticket.service_token, i, setTickets);
+      await fetchSingleServiceName(
+        ticket.service_token, 
+        i, 
+        (index, serviceName) => updateTicketServiceName(index, serviceName, setTickets)
+      );
     }
-  }
-};
-
-/**
- * 获取单个服务名称
- */
-export const fetchSingleServiceName = async (
-  serviceToken: string,
-  index: number,
-  setTickets: (tickets: TicketWithDisplayInfo[]) => void
-) => {
-  // 检查缓存
-  if (ticketStore.hasServiceNameCached(serviceToken)) {
-    const cachedName = ticketStore.getCachedServiceName(serviceToken);
-    if (cachedName) {
-      updateTicketServiceName(index, cachedName, setTickets);
-      return;
-    }
-  }
-
-  try {
-    const response = await getServiceName(serviceToken);
-    if (response.data && response.data.content) {
-      const serviceName = response.data.content.service_name;
-      const serviceType = response.data.content.service_type;
-
-      // 更新UI
-      updateTicketServiceName(index, serviceName, setTickets);
-
-      // 缓存到store
-      ticketStore.cacheServiceName(serviceToken, serviceName);
-      ticketStore.cacheServiceType(serviceToken, serviceType);
-    }
-  } catch (error) {
-    console.error(`Failed to fetch service name for token ${serviceToken}:`, error);
   }
 };
 
@@ -202,31 +175,13 @@ export const fetchUserNames = async (
     return;
   }
 
-  try {
-    // 去重后的员工ID数组
-    const empIdsArray = Array.from(allEmpIds);
-    console.log('Fetching user names for empids:', empIdsArray);
-
-    const response = await searchUserNames(empIdsArray);
-    if (response.data && response.data.content) {
-      const userNameMap = response.data.content;
-      console.log('Received user names:', userNameMap);
-
-      // 缓存结果
-      for (const empid of empIdsArray) {
-        if (userNameMap[empid]) {
-          ticketStore.cacheUserName(empid, userNameMap[empid]);
-        }
-      }
-
-      // 逐个处理异常单，更新责任人名称
-      ticketList.forEach((ticket, index) => {
-        updateTicketUserName(index, userNameMap, setTickets);
-      });
-    }
-  } catch (error) {
-    console.error('Failed to fetch user names:', error);
-  }
+  // 使用共享的API调用函数获取用户名称
+  const userNameMap = await fetchUserNamesFromApi(Array.from(allEmpIds));
+  
+  // 逐个处理异常单，更新责任人名称
+  ticketList.forEach((ticket, index) => {
+    updateTicketUserName(index, userNameMap, setTickets);
+  });
 };
 
 /**
