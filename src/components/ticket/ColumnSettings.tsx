@@ -183,6 +183,11 @@ const ColumnSettings: React.FC<ColumnSettingsProps> = ({
 
   // 切换列可见性
   const toggleColumnVisibility = (column: string) => {
+    // 如果是操作列，不允许隐藏
+    if (column === 'actions') {
+      return;
+    }
+    
     if (visibleColumns.includes(column)) {
       const newColumns = visibleColumns.filter((col) => col !== column);
       setVisibleColumns(newColumns);
@@ -196,6 +201,12 @@ const ColumnSettings: React.FC<ColumnSettingsProps> = ({
 
   // 拖拽开始时的处理
   const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, key: string) => {
+    // 如果是操作列，不允许拖拽
+    if (key === 'actions') {
+      e.preventDefault();
+      return;
+    }
+    
     // 使用dataTransfer保存更多信息
     e.dataTransfer.setData('text/plain', key);
     e.dataTransfer.effectAllowed = 'move';
@@ -342,7 +353,7 @@ const ColumnSettings: React.FC<ColumnSettingsProps> = ({
                       justifyContent: 'space-between', 
                       alignItems: 'center',
                       padding: '4px 8px',
-                      cursor: visibleColumns.includes(item.key) ? 'move' : 'default',
+                      cursor: visibleColumns.includes(item.key) && item.key !== 'actions' ? 'move' : 'default',
                       boxShadow: dragOverItem === item.key ? '0 0 5px rgba(24, 144, 255, 0.5)' : 'none',
                       transition: 'transform 0.3s cubic-bezier(0.2, 0, 0, 1), opacity 0.2s ease, box-shadow 0.2s ease',
                       userSelect: 'none', // 防止文本选择影响拖拽
@@ -351,7 +362,7 @@ const ColumnSettings: React.FC<ColumnSettingsProps> = ({
                       backgroundColor: '#ffffff', // 设置背景色强调层次感
                       margin: 0,
                     }}
-                    draggable={visibleColumns.includes(item.key)}
+                    draggable={visibleColumns.includes(item.key) && item.key !== 'actions'}
                     onDragStart={(e) => handleDragStart(e, item.key)}
                     onDragOver={(e) => handleDragOver(e, item.key)}
                     onDragEnter={(e) => handleDragEnter(e, item.key)}
@@ -364,8 +375,11 @@ const ColumnSettings: React.FC<ColumnSettingsProps> = ({
                     >
                       {item.label}
                     </Checkbox>
-                    {visibleColumns.includes(item.key) && (
+                    {visibleColumns.includes(item.key) && item.key !== 'actions' && (
                       <MenuOutlined style={{ color: '#999', cursor: 'grab' }} />
+                    )}
+                    {item.key === 'actions' && visibleColumns.includes(item.key) && (
+                      <span style={{ color: '#999', fontSize: '12px' }}>固定列</span>
                     )}
                   </div>
                 );

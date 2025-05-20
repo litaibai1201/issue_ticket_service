@@ -36,6 +36,7 @@ export const useTicketColumns = (
       dataIndex: 'title',
       width: 180, // 设置固定宽度
       ellipsis: true, // 超出部分显示省略号
+      align: 'center', // 将文字设置为居中显示
       render: (title: string, record: Ticket) => (
         <Tooltip title={<div>
           <p><strong>告警名称:</strong> {title}</p>
@@ -44,7 +45,7 @@ export const useTicketColumns = (
           <p><strong>通知对象:</strong> {record.webhook || '-'}</p>
           <p><strong>告警次数:</strong> {record.alarm_num || 0}</p>
         </div>} placement="right">
-          <a onClick={() => handleViewTicket(record.id)} style={{ cursor: 'pointer' }}>{title}</a>
+          <a onClick={() => handleViewTicket(record.id)} style={{ cursor: 'pointer', display: 'block', textAlign: 'center' }}>{title}</a>
         </Tooltip>
       ),
     },
@@ -292,9 +293,27 @@ export const useTicketColumns = (
   ];
 
   // 根据visibleColumns的顺序返回列配置
-  return visibleColumns
+  // 首先找到所有可见列
+  let visibleColumnConfigs = visibleColumns
     .map(key => columnDefs.find(col => col.key === key))
     .filter(column => column); // 移除undefined列
+  
+  // 判断是否包含操作列
+  const actionColumnIndex = visibleColumnConfigs.findIndex(col => col && col.key === 'actions');
+  
+  // 如果包含操作列，则将其从当前位置删除
+  if (actionColumnIndex !== -1) {
+    // 找到操作列的配置
+    const actionColumn = visibleColumnConfigs[actionColumnIndex];
+    
+    // 从当前位置删除操作列
+    visibleColumnConfigs.splice(actionColumnIndex, 1);
+    
+    // 在数组最后添加操作列，确保其始终显示在最右边
+    visibleColumnConfigs.push(actionColumn);
+  }
+  
+  return visibleColumnConfigs;
 };
 
 // 导出列表项配置
@@ -339,5 +358,5 @@ export const initialVisibleColumns = [
   'is_need',
   'status',
   'created_at',
-  'actions',
+  'actions', // 即使在这里将操作列放在其他位置，我们的逻辑也会将其始终强制显示在最右边
 ];
