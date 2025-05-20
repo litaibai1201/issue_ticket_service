@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
-import { Form, Input, Select, Row, Col } from 'antd';
+import { Form, Input, Select, Row, Col, Button } from 'antd';
 import { WorkNoOption } from './WorkNoSearch';
 
 const { Search } = Input;
@@ -11,6 +11,7 @@ interface TicketFilterFormProps {
   form: any; // Form 实例
   onFilter: (values: any) => void;
   onSearch: (keyword: string) => void;
+  onReset: () => void; // 新增重置回调
   onFormValuesChange: (changedValues: any, allValues: any) => void;
   handleWorkNoSearch: (value: string) => void;
   workNoOptions: WorkNoOption[];
@@ -35,6 +36,7 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
   form,
   onFilter,
   onSearch,
+  onReset,
   onFormValuesChange,
   handleWorkNoSearch,
   workNoOptions,
@@ -127,15 +129,33 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
         </Col>
       </Row>
       <Row>
-        <Col span={24} style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-          <Form.Item name="keyword" style={{ marginBottom: 0, width: '300px' }}>
-            <Search
-              placeholder="输入关键字搜索"
-              allowClear
-              enterButton="搜索"
-              onSearch={onSearch}
-            />
-          </Form.Item>
+        <Col span={24} style={{ display: 'flex', alignItems: 'center', marginTop: '16px', position: 'relative' }}>
+          {/* 搜索框居中 */}
+          <div style={{ width: '300px', margin: '0 auto' }}>
+            <Form.Item name="keyword" style={{ marginBottom: 0 }}>
+              <Search
+                placeholder="输入关键字搜索"
+                allowClear
+                enterButton="搜索"
+                onSearch={onSearch}
+              />
+            </Form.Item>
+          </div>
+          
+          {/* 重置按钮与搜索框同高度并位于最右边 */}
+          <Button 
+            type="primary" 
+            danger 
+            onClick={onReset}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '50%',
+              transform: 'translateY(-50%)'
+            }}
+          >
+            重置
+          </Button>
         </Col>
       </Row>
     </Form>

@@ -166,51 +166,34 @@ const TicketList: React.FC = () => {
       return;
     }
     
-    console.log(`为 ${uniqueTokens.length} 个服务令牌获取白名单数据`);
+    console.log(`Fetching white names for ${uniqueTokens.length} unique service tokens`);
     setWhiteNameLoading(true);
     const newWhiteNameMap: Record<string, string[]> = {};
     
     try {
-      // 针对每个 service_token 处理
+      // 对每个 service_token 调用接口
       for (const token of uniqueTokens) {
-        // 先检查是否有缓存
-        if (ticketStore.hasWhiteNamesCached(token)) {
-          const cachedWhiteNames = ticketStore.getCachedWhiteNames(token);
-          if (cachedWhiteNames) {
-            newWhiteNameMap[token] = cachedWhiteNames;
-            console.log(`从缓存中获取服务令牌 ${token} 的白名单数据`);
-            continue; // 跳过API调用
-          }
-        }
-        
-        // 如果没有缓存，才调用API
         try {
-          console.log(`调用API获取服务令牌 ${token} 的白名单数据`);
           const response = await getServiceWhiteName(token);
           if (response.data && response.data.code === 'S10000') {
-            // 处理响应数据
-            let whiteNames: string[] = [];
+            // 假设返回的数据在 content 字段中，并且是标题数组
             if (response.data.content && Array.isArray(response.data.content)) {
-              whiteNames = response.data.content;
+              newWhiteNameMap[token] = response.data.content;
             } else if (response.data.content && Array.isArray(response.data.content.titles)) {
-              whiteNames = response.data.content.titles;
+              newWhiteNameMap[token] = response.data.content.titles;
             }
-            
-            // 保存到本地映射和缓存
-            newWhiteNameMap[token] = whiteNames;
-            ticketStore.cacheWhiteNames(token, whiteNames);
           }
         } catch (err) {
-          console.error(`无法获取服务令牌 ${token} 的白名单数据:`, err);
+          console.error(`Failed to fetch white name for token ${token}:`, err);
           // 单个 token 请求失败不影响整体流程，继续请求下一个
         }
       }
       
       // 更新白名单映射
       setWhiteNameMap(newWhiteNameMap);
-      console.log('白名单数据获取完成:', newWhiteNameMap);
+      console.log('White name data fetched:', newWhiteNameMap);
     } catch (error) {
-      console.error('获取服务白名单时发生错误:', error);
+      console.error('Failed to fetch service white names:', error);
     } finally {
       setWhiteNameLoading(false);
     }
@@ -218,7 +201,10 @@ const TicketList: React.FC = () => {
 
   // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
-    fetchTickets(filter, setTickets, setTotal, setLoading, fetchServiceWhiteNames);
+    // 判断是否需要获取白名单数据
+    // 只在白名单数据为空时才获取白名单
+    const callback = Object.keys(whiteNameMap).length === 0 ? fetchServiceWhiteNames : () => {};
+    fetchTickets(filter, setTickets, setTotal, setLoading, callback);
   }, [filter]);
 
   // 处理搜索功能
@@ -464,7 +450,31 @@ const TicketList: React.FC = () => {
     }
   };
 
-  // 工号搜索函数
+  // 处理表单重置
+  const handleReset = () => {
+    // 重置表单
+    form.resetFields();
+    
+    // 重置过滤条件，但保留白名单数据
+    setFilter({
+      page: 1,
+      size: filter.size
+    });
+    
+    // 仅更新UI显示，而不重新获取数据
+    fetchTickets(
+      { page: 1, size: filter.size },
+      setTickets,
+      setTotal,
+      setLoading,
+      // 传入一个空函数，防止重新获取白名单数据
+      () => {}
+    );
+    
+    message.success('已重置所有筛选条件');
+  };
+  
+  // 处理工号搜索函数
   const handleWorkNoSearch = useCallback(
     createDebouncedWorkNoSearch(setWorkNoOptions, setWorkNoLoading),
     []
@@ -520,21 +530,7 @@ const TicketList: React.FC = () => {
     
     try {
       // 获取当前 service_token 的白名单数组
-      let currentWhiteNames: string[];
-      
-      // 从 ticketStore 中获取缓存
-      if (ticketStore.hasWhiteNamesCached(serviceToken)) {
-        const cachedWhiteNames = ticketStore.getCachedWhiteNames(serviceToken);
-        if (cachedWhiteNames) {
-          currentWhiteNames = [...cachedWhiteNames];
-        } else {
-          currentWhiteNames = whiteNameMap[serviceToken] || [];
-        }
-      } else {
-        // 如果没有缓存，使用当前状态中的数据
-        currentWhiteNames = whiteNameMap[serviceToken] || [];
-      }
-      
+      let currentWhiteNames = whiteNameMap[serviceToken] || [];
       const newWhiteNames = [...currentWhiteNames]; // 深拷贝数组
       
       if (operation === 'add') {
@@ -570,9 +566,6 @@ const TicketList: React.FC = () => {
           [serviceToken]: newWhiteNames
         }));
         
-        // 更新缓存
-        ticketStore.updateWhiteNames(serviceToken, newWhiteNames);
-        
         // 显示成功消息
         message.success({
           content: operation === 'add' 
@@ -601,17 +594,12 @@ const TicketList: React.FC = () => {
 
   // 处理添加白名单
   const handleAddWhitelist = () => {
-    // 检查当前白名单状态
-    const hasWhiteNameData = Object.keys(whiteNameMap).length > 0;
-    const hasTickets = tickets.length > 0;
-    
-    if (!hasWhiteNameData) {
-      if (hasTickets) {
-        // 如果有异常单数据但没有白名单数据，尝试加载
-        message.info('正在获取白名单数据...');
+    // 检查是否有服务白名单数据
+    if (Object.keys(whiteNameMap).length === 0) {
+      message.info('正在加载服务白名单数据...');
+      // 如果没有数据，尝试重新加载
+      if (tickets.length > 0) {
         fetchServiceWhiteNames(tickets);
-      } else {
-        message.info('暂无异常单和白名单数据');
       }
       return;
     }
@@ -662,6 +650,7 @@ const TicketList: React.FC = () => {
             form={form}
             onFilter={handleFilter}
             onSearch={handleSearch}
+            onReset={handleReset}
             onFormValuesChange={handleFormValuesChange}
             handleWorkNoSearch={handleWorkNoSearch}
             workNoOptions={workNoOptions}
