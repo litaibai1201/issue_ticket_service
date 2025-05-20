@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { Button, Space, Tag, Tooltip, Dropdown } from 'antd';
-import { NotificationOutlined } from '@ant-design/icons';
+import { NotificationOutlined, SettingOutlined } from '@ant-design/icons';
 import { Ticket } from '../../types';
 
 // 生成表格列配置
@@ -9,7 +9,8 @@ export const useTicketColumns = (
   filter: { page: number; size: number },
   visibleColumns: string[],
   handleViewTicket: (id: number) => void,
-  handleSendAlert: (id: number, type: string) => void
+  handleSendAlert: (id: number, type: string) => void,
+  settingsMenuItems?: any[]
 ) => {
   // 列定义
   const columnDefs = [
@@ -231,6 +232,18 @@ export const useTicketColumns = (
                   />
                 </Tooltip>
               </Dropdown>
+              
+              {/* 设置按钮 */}
+              {settingsMenuItems && settingsMenuItems.length > 0 && (
+                <Dropdown menu={{ items: settingsMenuItems }} placement="bottomRight" arrow>
+                  <Tooltip title="设置">
+                    <Button
+                      type="text"
+                      icon={<SettingOutlined style={{ color: '#1890ff' }} />}
+                    />
+                  </Tooltip>
+                </Dropdown>
+              )}
             </>
           )}
         </Space>

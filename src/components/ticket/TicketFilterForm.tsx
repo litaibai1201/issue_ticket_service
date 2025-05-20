@@ -15,25 +15,15 @@ interface TicketFilterFormProps {
   handleWorkNoSearch: (value: string) => void;
   workNoOptions: WorkNoOption[];
   workNoLoading: boolean;
+  // 动态筛选数据
+  locationOptions: {id: string; name: string}[];
+  factoryOptions: {id: string; name: string}[];
+  buOptions: {id: string; name: string}[];
+  stationOptions: {id: string; name: string}[];
 }
 
-// 下拉选项数据
-const factories = [
-  { id: '1', name: '一厂' },
-  { id: '2', name: '二厂' },
-  { id: '3', name: '三厂' },
-];
+// 状态选项固定不变
 
-const locations = [
-  { id: '1', name: '鹏鼎园区' },
-  { id: '2', name: '礼鼎园区' },
-];
-
-const businessUnits = [
-  { id: '1', name: 'BU1' },
-  { id: '2', name: 'BU2' },
-  { id: '3', name: 'BU3' },
-];
 
 const statuses = [
   { id: '1', name: '待处理' },
@@ -49,6 +39,10 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
   handleWorkNoSearch,
   workNoOptions,
   workNoLoading,
+  locationOptions,
+  factoryOptions,
+  buOptions,
+  stationOptions,
 }) => {
   return (
     <Form
@@ -62,7 +56,7 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
         <Col xs={24} sm={12} md={4}>
           <Form.Item name="location" label="园区">
             <Select placeholder="选择园区" allowClear>
-              {locations.map((loc) => (
+              {locationOptions && locationOptions.map((loc) => (
                 <Option key={loc.id} value={loc.id}>
                   {loc.name}
                 </Option>
@@ -73,7 +67,7 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
         <Col xs={24} sm={12} md={4}>
           <Form.Item name="factory" label="厂区">
             <Select placeholder="选择厂区" allowClear>
-              {factories.map((factory) => (
+              {factoryOptions && factoryOptions.map((factory) => (
                 <Option key={factory.id} value={factory.id}>
                   {factory.name}
                 </Option>
@@ -84,7 +78,7 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
         <Col xs={24} sm={12} md={4}>
           <Form.Item name="bu" label="业务单位">
             <Select placeholder="选择业务单位" allowClear>
-              {businessUnits.map((bu) => (
+              {buOptions && buOptions.map((bu) => (
                 <Option key={bu.id} value={bu.id}>
                   {bu.name}
                 </Option>
@@ -95,9 +89,11 @@ const TicketFilterForm: React.FC<TicketFilterFormProps> = ({
         <Col xs={24} sm={12} md={4}>
           <Form.Item name="station" label="工站">
             <Select placeholder="选择工站" allowClear>
-              <Option value="station1">工站 1</Option>
-              <Option value="station2">工站 2</Option>
-              <Option value="station3">工站 3</Option>
+              {stationOptions && stationOptions.map((station) => (
+                <Option key={station.id} value={station.id}>
+                  {station.name}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
         </Col>

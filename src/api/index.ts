@@ -72,3 +72,16 @@ export const sendGroupAlarmMsg = (data: {
 }) => {
   return axios.post(`${apiHost.alarmHost}/sendGroupAlarmMsg`, data);
 };
+
+export const getFilterData = () => {
+  return axios.get<{
+    code: string;
+    content: {
+      bu: string[];
+      factory: string[];
+      location: string[];
+      service_token: string[];
+      station: string[];
+    }
+  }>(`${apiHost.host}/get_filter_data`);
+};

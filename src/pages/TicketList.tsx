@@ -2,16 +2,18 @@
 // src/pages/TicketList.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, SettingOutlined } from '@ant-design/icons';
 import {
   Table,
   Card,
   Form,
   Pagination,
   message,
-  notification
+  notification,
+  Dropdown,
+  Menu
 } from 'antd';
-import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm } from '../api';
+import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm, getFilterData } from '../api';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
@@ -40,6 +42,13 @@ const TicketList: React.FC = () => {
   const [workNoOptions, setWorkNoOptions] = useState<WorkNoOption[]>([]);
   const [workNoLoading, setWorkNoLoading] = useState<boolean>(false);
 
+  // 动态筛选数据
+  const [locationOptions, setLocationOptions] = useState<{id: string; name: string}[]>([]);
+  const [factoryOptions, setFactoryOptions] = useState<{id: string; name: string}[]>([]);
+  const [buOptions, setBuOptions] = useState<{id: string; name: string}[]>([]);
+  const [stationOptions, setStationOptions] = useState<{id: string; name: string}[]>([]);
+  const [filterDataLoading, setFilterDataLoading] = useState<boolean>(false);
+
   const [tickets, setTickets] = useState<TicketWithDisplayInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [total, setTotal] = useState<number>(0);
@@ -66,7 +75,7 @@ const TicketList: React.FC = () => {
     }
   }, []);
 
-  // 加载工号和用户姓名
+  // 加载工号和用户姓名以及筛选数据
   useEffect(() => {
     const workNo = getUserWorkNo();
     if (workNo) {
@@ -95,11 +104,41 @@ const TicketList: React.FC = () => {
       };
 
       fetchUserName();
+      
+      // 获取筛选数据
+      fetchFilterData();
     } else {
       // 如果没有token或解析失败，重定向到登录页
       navigate('/login');
     }
   }, [navigate]);
+  
+  // 获取筛选数据
+  const fetchFilterData = async () => {
+    try {
+      setFilterDataLoading(true);
+      const response = await getFilterData();
+      if (response.data && response.data.code === 'S10000') {
+        const { bu, factory, location, station } = response.data.content;
+        
+        // 将字符串数组转换为选项格式
+        setLocationOptions(location.map(item => ({ id: item, name: item })));
+        setFactoryOptions(factory.map(item => ({ id: item, name: item })));
+        setBuOptions(bu.map(item => ({ id: item, name: item })));
+        setStationOptions(station.map(item => ({ id: item, name: item })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch filter data:', error);
+      notification.error({
+        message: '获取筛选数据失败',
+        description: '请刷新页面重试',
+        placement: 'topRight',
+        duration: 3
+      });
+    } finally {
+      setFilterDataLoading(false);
+    }
+  };
 
   // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
@@ -389,8 +428,24 @@ const TicketList: React.FC = () => {
     navigate('/login');
   };
 
+  // 处理添加白名单
+  const handleAddWhitelist = () => {
+    // 这里添加白名单逻辑实现
+    message.success('准备添加白名单');
+    // 后续可以添加打开白名单表单或模态框
+  };
+
+  // 设置菜单项
+  const settingsMenuItems = [
+    {
+      key: 'addWhitelist',
+      label: '添加白名单',
+      onClick: handleAddWhitelist
+    }
+  ];
+
   // 获取表格列配置
-  const columns = useTicketColumns(filter, visibleColumns, handleViewTicket, handleSendAlert);
+  const columns = useTicketColumns(filter, visibleColumns, handleViewTicket, handleSendAlert, settingsMenuItems);
 
   return (
     <div>
@@ -410,6 +465,10 @@ const TicketList: React.FC = () => {
             handleWorkNoSearch={handleWorkNoSearch}
             workNoOptions={workNoOptions}
             workNoLoading={workNoLoading}
+            locationOptions={locationOptions}
+            factoryOptions={factoryOptions}
+            buOptions={buOptions}
+            stationOptions={stationOptions}
           />
         </Card>
 
