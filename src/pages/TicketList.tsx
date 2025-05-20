@@ -13,7 +13,7 @@ import {
   Dropdown,
   Menu
 } from 'antd';
-import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm, getFilterData, getServiceWhiteName } from '../api';
+import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm, getFilterData, getServiceWhiteName, updateServiceWhiteName } from '../api';
 import { levelMap, statusMap } from '../components/ticket/TicketServiceUtils';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
@@ -166,34 +166,51 @@ const TicketList: React.FC = () => {
       return;
     }
     
-    console.log(`Fetching white names for ${uniqueTokens.length} unique service tokens`);
+    console.log(`为 ${uniqueTokens.length} 个服务令牌获取白名单数据`);
     setWhiteNameLoading(true);
     const newWhiteNameMap: Record<string, string[]> = {};
     
     try {
-      // 对每个 service_token 调用接口
+      // 针对每个 service_token 处理
       for (const token of uniqueTokens) {
+        // 先检查是否有缓存
+        if (ticketStore.hasWhiteNamesCached(token)) {
+          const cachedWhiteNames = ticketStore.getCachedWhiteNames(token);
+          if (cachedWhiteNames) {
+            newWhiteNameMap[token] = cachedWhiteNames;
+            console.log(`从缓存中获取服务令牌 ${token} 的白名单数据`);
+            continue; // 跳过API调用
+          }
+        }
+        
+        // 如果没有缓存，才调用API
         try {
+          console.log(`调用API获取服务令牌 ${token} 的白名单数据`);
           const response = await getServiceWhiteName(token);
           if (response.data && response.data.code === 'S10000') {
-            // 假设返回的数据在 content 字段中，并且是标题数组
+            // 处理响应数据
+            let whiteNames: string[] = [];
             if (response.data.content && Array.isArray(response.data.content)) {
-              newWhiteNameMap[token] = response.data.content;
+              whiteNames = response.data.content;
             } else if (response.data.content && Array.isArray(response.data.content.titles)) {
-              newWhiteNameMap[token] = response.data.content.titles;
+              whiteNames = response.data.content.titles;
             }
+            
+            // 保存到本地映射和缓存
+            newWhiteNameMap[token] = whiteNames;
+            ticketStore.cacheWhiteNames(token, whiteNames);
           }
         } catch (err) {
-          console.error(`Failed to fetch white name for token ${token}:`, err);
+          console.error(`无法获取服务令牌 ${token} 的白名单数据:`, err);
           // 单个 token 请求失败不影响整体流程，继续请求下一个
         }
       }
       
       // 更新白名单映射
       setWhiteNameMap(newWhiteNameMap);
-      console.log('White name data fetched:', newWhiteNameMap);
+      console.log('白名单数据获取完成:', newWhiteNameMap);
     } catch (error) {
-      console.error('Failed to fetch service white names:', error);
+      console.error('获取服务白名单时发生错误:', error);
     } finally {
       setWhiteNameLoading(false);
     }
@@ -474,7 +491,7 @@ const TicketList: React.FC = () => {
   };
   
   // 处理添加或移出白名单
-  const handleWhitelistOperation = (id: number, operation: 'add' | 'remove') => {
+  const handleWhitelistOperation = async (id: number, operation: 'add' | 'remove') => {
     // 找到异常单
     const ticket = tickets.find(t => t.id === id);
     if (!ticket) {
@@ -487,52 +504,114 @@ const TicketList: React.FC = () => {
       return;
     }
     
-    if (operation === 'add') {
-      message.success(`已将异常单 #${id} 添加到白名单`); 
-      // 这里应该调用添加白名单的 API
-      // 在 API 调用成功后需要更新 whiteNameMap 状态
-      console.log(`添加白名单: ${ticket.title}, token: ${ticket.service_token}`);
-    } else {
-      message.success(`已将异常单 #${id} 从白名单中移除`);
-      // 这里应该调用移除白名单的 API
-      // 在 API 调用成功后需要更新 whiteNameMap 状态
-      console.log(`移除白名单: ${ticket.title}, token: ${ticket.service_token}`);
+    // 确保 service_token 和 title 存在
+    if (!ticket.service_token || !ticket.title) {
+      notification.error({
+        message: '操作失败',
+        description: '异常单缺少必要信息（服务令牌或标题）',
+        placement: 'topRight',
+        duration: 3
+      });
+      return;
     }
     
-    // 模拟更新白名单状态（真实实现中应该根据 API 响应更新）
-    if (ticket.service_token && ticket.title) {
-      const newWhiteNameMap = { ...whiteNameMap };
-      if (!newWhiteNameMap[ticket.service_token]) {
-        newWhiteNameMap[ticket.service_token] = [];
-      }
+    const serviceToken = ticket.service_token;
+    const title = ticket.title;
+    
+    try {
+      // 获取当前 service_token 的白名单数组
+      let currentWhiteNames: string[];
       
-      if (operation === 'add') {
-        // 添加到白名单
-        if (!newWhiteNameMap[ticket.service_token].includes(ticket.title)) {
-          newWhiteNameMap[ticket.service_token] = [
-            ...newWhiteNameMap[ticket.service_token],
-            ticket.title
-          ];
+      // 从 ticketStore 中获取缓存
+      if (ticketStore.hasWhiteNamesCached(serviceToken)) {
+        const cachedWhiteNames = ticketStore.getCachedWhiteNames(serviceToken);
+        if (cachedWhiteNames) {
+          currentWhiteNames = [...cachedWhiteNames];
+        } else {
+          currentWhiteNames = whiteNameMap[serviceToken] || [];
         }
       } else {
-        // 从白名单中移除
-        newWhiteNameMap[ticket.service_token] = newWhiteNameMap[ticket.service_token].filter(
-          title => title !== ticket.title
-        );
+        // 如果没有缓存，使用当前状态中的数据
+        currentWhiteNames = whiteNameMap[serviceToken] || [];
       }
       
-      setWhiteNameMap(newWhiteNameMap);
+      const newWhiteNames = [...currentWhiteNames]; // 深拷贝数组
+      
+      if (operation === 'add') {
+        // 如果标题不在白名单中，添加它
+        if (!newWhiteNames.includes(title)) {
+          newWhiteNames.push(title);
+          console.log(`正在添加白名单: ${title}, token: ${serviceToken}`);
+        }
+      } else {
+        // 从白名单中移除标题
+        const index = newWhiteNames.indexOf(title);
+        if (index !== -1) {
+          newWhiteNames.splice(index, 1);
+          console.log(`正在移除白名单: ${title}, token: ${serviceToken}`);
+        }
+      }
+      
+      // 显示加载中状态
+      message.loading({
+        content: operation === 'add' ? '正在添加白名单...' : '正在移除白名单...',
+        key: 'whitelistOperation',
+        duration: 0
+      });
+      
+      // 调用 API 更新白名单
+      const response = await updateServiceWhiteName(serviceToken, newWhiteNames);
+      
+      // 检查响应状态
+      if (response.data && response.data.code === 'S10000') {
+        // 更新本地白名单映射
+        setWhiteNameMap(prev => ({
+          ...prev,
+          [serviceToken]: newWhiteNames
+        }));
+        
+        // 更新缓存
+        ticketStore.updateWhiteNames(serviceToken, newWhiteNames);
+        
+        // 显示成功消息
+        message.success({
+          content: operation === 'add' 
+            ? `已将异常单 #${id} 添加到白名单` 
+            : `已将异常单 #${id} 从白名单中移除`,
+          key: 'whitelistOperation',
+          duration: 2
+        });
+      } else {
+        // 发生错误
+        message.error({
+          content: `白名单操作失败: ${response.data?.msg || '未知错误'}`,
+          key: 'whitelistOperation',
+          duration: 3
+        });
+      }
+    } catch (error) {
+      console.error('操作白名单时发生错误:', error);
+      message.error({
+        content: '操作白名单失败，请重试',
+        key: 'whitelistOperation',
+        duration: 3
+      });
     }
   };
 
   // 处理添加白名单
   const handleAddWhitelist = () => {
-    // 检查是否有服务白名单数据
-    if (Object.keys(whiteNameMap).length === 0) {
-      message.info('正在加载服务白名单数据...');
-      // 如果没有数据，尝试重新加载
-      if (tickets.length > 0) {
+    // 检查当前白名单状态
+    const hasWhiteNameData = Object.keys(whiteNameMap).length > 0;
+    const hasTickets = tickets.length > 0;
+    
+    if (!hasWhiteNameData) {
+      if (hasTickets) {
+        // 如果有异常单数据但没有白名单数据，尝试加载
+        message.info('正在获取白名单数据...');
         fetchServiceWhiteNames(tickets);
+      } else {
+        message.info('暂无异常单和白名单数据');
       }
       return;
     }

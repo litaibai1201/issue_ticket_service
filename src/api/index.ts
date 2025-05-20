@@ -77,6 +77,10 @@ export const getServiceWhiteName = (serviceToken: string) => {
   return axios.get(`${apiHost.host}/service_white_name`, { params: { service_token: serviceToken } });
 };
 
+export const updateServiceWhiteName = (serviceToken: string, whiteNames: string[]) => {
+  return axios.put(`${apiHost.host}/service_white_name`, { service_token: serviceToken, white_names: whiteNames });
+};
+
 export const getFilterData = () => {
   return axios.get<{
     code: string;

@@ -6,7 +6,6 @@ interface ServiceNameCache {
   [key: string]: string;
 }
 
-
 // 服务类型缓存接口
 interface ServiceTypeCache {
   [key: string]: string;
@@ -17,6 +16,11 @@ interface UserNameCache {
   [empid: string]: string;
 }
 
+// 白名单缓存接口
+interface WhiteNameCache {
+  [serviceToken: string]: string[];
+}
+
 // 简单的状态存储
 class TicketStore {
   private tickets: Ticket[] = [];
@@ -24,6 +28,7 @@ class TicketStore {
   private serviceNameCache: ServiceNameCache = {};
   private userNameCache: UserNameCache = {};
   private serviceTypeCache: ServiceTypeCache = {};
+  private whiteNameCache: WhiteNameCache = {};
 
   // 设置异常单列表
   setTickets(tickets: Ticket[]) {
@@ -107,6 +112,31 @@ class TicketStore {
   // 检查用户名称是否已缓存
   hasUserNameCached(empid: string): boolean {
     return !!this.userNameCache[empid];
+  }
+  
+  // 缓存白名单
+  cacheWhiteNames(serviceToken: string, whiteNames: string[]) {
+    this.whiteNameCache[serviceToken] = [...whiteNames];
+  }
+  
+  // 获取缓存的白名单
+  getCachedWhiteNames(serviceToken: string): string[] | null {
+    return this.whiteNameCache[serviceToken] || null;
+  }
+  
+  // 检查白名单是否已缓存
+  hasWhiteNamesCached(serviceToken: string): boolean {
+    return !!this.whiteNameCache[serviceToken];
+  }
+  
+  // 更新白名单缓存
+  updateWhiteNames(serviceToken: string, whiteNames: string[]) {
+    this.whiteNameCache[serviceToken] = [...whiteNames];
+  }
+  
+  // 清除所有白名单缓存
+  clearWhiteNamesCache() {
+    this.whiteNameCache = {};
   }
 }
 
