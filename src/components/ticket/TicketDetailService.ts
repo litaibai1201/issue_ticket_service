@@ -227,6 +227,7 @@ export const fetchTicketLogs = async (
 
 /**
  * 提交异常单处理表单
+ * @returns Promise<boolean> 提交是否成功
  */
 export const submitTicketForm = async (
   ticketId: string,
@@ -238,8 +239,8 @@ export const submitTicketForm = async (
   fetchTicketLogs: (ticketId: string) => Promise<void>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formRef: React.MutableRefObject<any>
-) => {
-  if (!ticketId) return;
+): Promise<boolean> => {
+  if (!ticketId) return false;
 
   // 处理 labelInValue 模式下的handler数据
   const processedValues = { ...values };
@@ -280,22 +281,24 @@ export const submitTicketForm = async (
     console.log('API Payload:', JSON.stringify(payload, null, 2));
 
     const response = await updateTicket(ticketId, payload);
+    
+    // 检查提交状态
+    if (!response || !response.data) {
+      message.error('更新异常单失败: 无效的响应');
+      return false;
+    }
+    
     message.success('异常单更新成功');
 
     // 获取更新后的异常单数据
-    if (response && response.data) {
-      const updatedTicket = response.data.content || response.data;
+    const updatedTicket = response.data.content || response.data;
 
-      // 更新store中的异常单数据
-      if (updatedTicket) {
-        ticketStore.updateTicket(updatedTicket);
-        setTicket(updatedTicket);
-      } else {
-        // 如果无法从响应中获取更新后的数据，继续使用API获取最新数据
-        fetchTicketData(ticketId);
-      }
+    // 更新store中的异常单数据
+    if (updatedTicket) {
+      ticketStore.updateTicket(updatedTicket);
+      setTicket(updatedTicket);
     } else {
-      // 如果没有响应数据，重新获取
+      // 如果无法从响应中获取更新后的数据，继续使用API获取最新数据
       fetchTicketData(ticketId);
     }
 
@@ -314,9 +317,12 @@ export const submitTicketForm = async (
     } else {
       console.warn('Form ref is not available when clearing form values');
     }
+    
+    return true; // 提交成功
   } catch (error) {
     console.error('Failed to update ticket:', error);
     message.error('更新异常单失败');
+    return false; // 提交失败
   } finally {
     setSubmitting(false);
   }

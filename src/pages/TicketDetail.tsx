@@ -49,10 +49,20 @@ const TicketDetail: React.FC = () => {
   const formRef = useRef<any>(null);
   const navigate = useNavigate();
   const [formReady, setFormReady] = useState<boolean>(false);
+  const [ticketCompleted, setTicketCompleted] = useState<boolean>(false); // 添加ticketCompleted状态
+
 
   // 工号搜索相关状态
   const [handlerOptions, setHandlerOptions] = useState<Array<{value: string, label: string, name?: string, disabled?: boolean}>>([]);
   const [handlerLoading, setHandlerLoading] = useState<boolean>(false);
+  
+  // 当ticket状态变化时更新ticketCompleted
+  useEffect(() => {
+    if (ticket) {
+      const completed = isTicketCompleted(ticket.status);
+      setTicketCompleted(completed);
+    }
+  }, [ticket]);
 
   // 在组件挂载后设置 formRef 的值
   useEffect(() => {
@@ -120,7 +130,16 @@ const TicketDetail: React.FC = () => {
     }
 
     try {
-      await submitTicketForm(
+      // 检查提交的表单中的状态是否为'已完成'(状态值为3)
+      const isCompletedStatus = values.status === 3;
+      
+      // 如果状态为已完成，提前更新UI状态以提高响应速度
+      if (isCompletedStatus) {
+        // 提前更新状态，立即反馈给用户
+        setTicketCompleted(true);
+      }
+      
+      const result = await submitTicketForm(
         id,
         values,
         username,
@@ -130,10 +149,21 @@ const TicketDetail: React.FC = () => {
         fetchTicketLogsWrapper,
         formRef
       );
+      
+      // 如果提交成功且状态是已完成，更新异常单数据
+      if (isCompletedStatus && result !== false) {
+        message.success('异常单已标记为已完成');
+        // 获取更新后的异常单数据
+        await fetchTicketDataWrapper(id);
+      }
     } catch (error) {
       console.error('Failed to submit ticket form:', error);
       message.error('提交表单失败，请重试');
       setSubmitting(false);
+      // 如果提交失败，重置状态
+      if (ticket) {
+        setTicketCompleted(isTicketCompleted(ticket.status));
+      }
     }
   };
 
@@ -284,9 +314,6 @@ const TicketDetail: React.FC = () => {
       </div>
     );
   }
-
-  // 检查异常单是否已完成
-  const ticketCompleted = ticket ? isTicketCompleted(ticket.status) : false;
 
   return (
     <ConfigProvider locale={zhCN}>
