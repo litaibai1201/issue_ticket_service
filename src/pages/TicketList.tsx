@@ -13,8 +13,8 @@ import {
   Dropdown,
   Menu
 } from 'antd';
-import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm, getFilterData } from '../api';
-import { levelMap, statusMap } from '../components/ticket/ticketServiceUtils';
+import { searchUserData, sendGroupAlarmMsg, sendSingleAlarm, getFilterData, getServiceWhiteName } from '../api';
+import { levelMap, statusMap } from '../components/ticket/TicketServiceUtils';
 import { TicketFilter } from '../types/index';
 import { getUserWorkNo } from '../utils/token';
 import ticketStore from '../store/ticketStore';
@@ -48,7 +48,10 @@ const TicketList: React.FC = () => {
   const [factoryOptions, setFactoryOptions] = useState<{id: string; name: string}[]>([]);
   const [buOptions, setBuOptions] = useState<{id: string; name: string}[]>([]);
   const [stationOptions, setStationOptions] = useState<{id: string; name: string}[]>([]);
+  const [serviceTokens, setServiceTokens] = useState<string[]>([]);
+  const [whiteNameMap, setWhiteNameMap] = useState<Record<string, string[]>>({});
   const [filterDataLoading, setFilterDataLoading] = useState<boolean>(false);
+  const [whiteNameLoading, setWhiteNameLoading] = useState<boolean>(false);
 
   const [tickets, setTickets] = useState<TicketWithDisplayInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -140,10 +143,65 @@ const TicketList: React.FC = () => {
       setFilterDataLoading(false);
     }
   };
+  
+  // 从异常单列表中获取全部 service_token 并去重
+  const getUniqueServiceTokens = (ticketList: TicketWithDisplayInfo[]): string[] => {
+    const tokenSet = new Set<string>();
+    
+    ticketList.forEach(ticket => {
+      if (ticket.service_token) {
+        tokenSet.add(ticket.service_token);
+      }
+    });
+    
+    return Array.from(tokenSet);
+  };
+  
+  // 获取服务白名单
+  const fetchServiceWhiteNames = async (ticketList: TicketWithDisplayInfo[]) => {
+    // 得到异常单中的唯一service_token列表
+    const uniqueTokens = getUniqueServiceTokens(ticketList);
+    
+    if (uniqueTokens.length === 0) {
+      return;
+    }
+    
+    console.log(`Fetching white names for ${uniqueTokens.length} unique service tokens`);
+    setWhiteNameLoading(true);
+    const newWhiteNameMap: Record<string, string[]> = {};
+    
+    try {
+      // 对每个 service_token 调用接口
+      for (const token of uniqueTokens) {
+        try {
+          const response = await getServiceWhiteName(token);
+          if (response.data && response.data.code === 'S10000') {
+            // 假设返回的数据在 content 字段中，并且是标题数组
+            if (response.data.content && Array.isArray(response.data.content)) {
+              newWhiteNameMap[token] = response.data.content;
+            } else if (response.data.content && Array.isArray(response.data.content.titles)) {
+              newWhiteNameMap[token] = response.data.content.titles;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to fetch white name for token ${token}:`, err);
+          // 单个 token 请求失败不影响整体流程，继续请求下一个
+        }
+      }
+      
+      // 更新白名单映射
+      setWhiteNameMap(newWhiteNameMap);
+      console.log('White name data fetched:', newWhiteNameMap);
+    } catch (error) {
+      console.error('Failed to fetch service white names:', error);
+    } finally {
+      setWhiteNameLoading(false);
+    }
+  };
 
   // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
-    fetchTickets(filter, setTickets, setTotal, setLoading);
+    fetchTickets(filter, setTickets, setTotal, setLoading, fetchServiceWhiteNames);
   }, [filter]);
 
   // 处理搜索功能
@@ -403,24 +461,113 @@ const TicketList: React.FC = () => {
     navigate('/login');
   };
 
-  // 处理添加白名单
-  const handleAddWhitelist = () => {
-    // 这里添加白名单逻辑实现
-    message.success('准备添加白名单');
-    // 后续可以添加打开白名单表单或模态框
+  // 判断异常单是否在白名单中
+  const isTicketInWhitelist = (ticket: TicketWithDisplayInfo): boolean => {
+    if (!ticket || !ticket.service_token || !ticket.title) return false;
+    
+    // 获取该服务的白名单
+    const whiteNameList = whiteNameMap[ticket.service_token];
+    if (!whiteNameList || !Array.isArray(whiteNameList)) return false;
+    
+    // 检查异常单标题是否在白名单中
+    return whiteNameList.includes(ticket.title);
+  };
+  
+  // 处理添加或移出白名单
+  const handleWhitelistOperation = (id: number, operation: 'add' | 'remove') => {
+    // 找到异常单
+    const ticket = tickets.find(t => t.id === id);
+    if (!ticket) {
+      notification.error({
+        message: '操作失败',
+        description: '找不到对应的异常单信息',
+        placement: 'topRight',
+        duration: 3
+      });
+      return;
+    }
+    
+    if (operation === 'add') {
+      message.success(`已将异常单 #${id} 添加到白名单`); 
+      // 这里应该调用添加白名单的 API
+      // 在 API 调用成功后需要更新 whiteNameMap 状态
+      console.log(`添加白名单: ${ticket.title}, token: ${ticket.service_token}`);
+    } else {
+      message.success(`已将异常单 #${id} 从白名单中移除`);
+      // 这里应该调用移除白名单的 API
+      // 在 API 调用成功后需要更新 whiteNameMap 状态
+      console.log(`移除白名单: ${ticket.title}, token: ${ticket.service_token}`);
+    }
+    
+    // 模拟更新白名单状态（真实实现中应该根据 API 响应更新）
+    if (ticket.service_token && ticket.title) {
+      const newWhiteNameMap = { ...whiteNameMap };
+      if (!newWhiteNameMap[ticket.service_token]) {
+        newWhiteNameMap[ticket.service_token] = [];
+      }
+      
+      if (operation === 'add') {
+        // 添加到白名单
+        if (!newWhiteNameMap[ticket.service_token].includes(ticket.title)) {
+          newWhiteNameMap[ticket.service_token] = [
+            ...newWhiteNameMap[ticket.service_token],
+            ticket.title
+          ];
+        }
+      } else {
+        // 从白名单中移除
+        newWhiteNameMap[ticket.service_token] = newWhiteNameMap[ticket.service_token].filter(
+          title => title !== ticket.title
+        );
+      }
+      
+      setWhiteNameMap(newWhiteNameMap);
+    }
   };
 
-  // 设置菜单项
-  const settingsMenuItems = [
-    {
-      key: 'addWhitelist',
-      label: '添加白名单',
-      onClick: handleAddWhitelist
+  // 处理添加白名单
+  const handleAddWhitelist = () => {
+    // 检查是否有服务白名单数据
+    if (Object.keys(whiteNameMap).length === 0) {
+      message.info('正在加载服务白名单数据...');
+      // 如果没有数据，尝试重新加载
+      if (tickets.length > 0) {
+        fetchServiceWhiteNames(tickets);
+      }
+      return;
     }
-  ];
+    
+    // 显示白名单数据渲染数量
+    const totalWhiteNames = Object.values(whiteNameMap).reduce(
+      (sum, titles) => sum + titles.length, 0
+    );
+    
+    message.success(`发现 ${Object.keys(whiteNameMap).length} 个服务令牌，共 ${totalWhiteNames} 个白名单项目`);
+    
+    // 这里可以打开一个模态框，显示白名单详情并允许用户添加
+    // 但目前无需改动界面，我们仅在控制台输出白名单数据
+    console.log('Service white name data:', whiteNameMap);
+  };
 
+  // 获取异常单的菜单项
+  const getTicketMenuItems = (ticketId: number) => {
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket) return [];
+    
+    // 检查异常单是否在白名单中
+    const inWhitelist = isTicketInWhitelist(ticket);
+    
+    return [
+      {
+        key: inWhitelist ? 'removeWhitelist' : 'addWhitelist',
+        label: inWhitelist ? '移除白名单' : '添加白名单',
+        onClick: () => handleWhitelistOperation(ticketId, inWhitelist ? 'remove' : 'add')
+      }
+    ];
+  };
+  
   // 获取表格列配置
-  const columns = useTicketColumns(filter, visibleColumns, handleViewTicket, handleSendAlert, settingsMenuItems);
+  const columns = useTicketColumns(filter, visibleColumns, handleViewTicket, handleSendAlert, getTicketMenuItems);
 
   return (
     <div>

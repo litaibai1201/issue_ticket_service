@@ -73,6 +73,10 @@ export const sendGroupAlarmMsg = (data: {
   return axios.post(`${apiHost.alarmHost}/sendGroupAlarmMsg`, data);
 };
 
+export const getServiceWhiteName = (serviceToken: string) => {
+  return axios.get(`${apiHost.host}/service_white_name`, { params: { service_token: serviceToken } });
+};
+
 export const getFilterData = () => {
   return axios.get<{
     code: string;

@@ -10,7 +10,7 @@ export const useTicketColumns = (
   visibleColumns: string[],
   handleViewTicket: (id: number) => void,
   handleSendAlert: (id: number, type: string) => void,
-  settingsMenuItems?: any[]
+  getSettingsMenuItems: (ticketId: number) => any[]
 ) => {
   // 列定义
   const columnDefs = [
@@ -271,22 +271,25 @@ export const useTicketColumns = (
                   />
                 </Tooltip>
               </Dropdown>
-              
-              {/* 设置按钮 */}
-              {settingsMenuItems && settingsMenuItems.length > 0 && (
-                <Dropdown menu={{ items: settingsMenuItems }} placement="bottomRight" arrow trigger={['click']}>
-                  <Tooltip title="设置">
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<SettingOutlined style={{ color: '#1890ff' }} />}
-                      style={{ padding: '0 4px', minWidth: 'auto' }}
-                    />
-                  </Tooltip>
-                </Dropdown>
-              )}
             </>
           )}
+          
+          {/* 设置按钮 - 置于条件判断外，始终显示 */}
+          <Dropdown 
+            menu={{ items: getSettingsMenuItems(record.id) }} 
+            placement="bottomRight" 
+            arrow 
+            trigger={['click']}
+          >
+            <Tooltip title="设置">
+              <Button
+                type="text"
+                size="small"
+                icon={<SettingOutlined style={{ color: '#1890ff' }} />}
+                style={{ padding: '0 4px', minWidth: 'auto' }}
+              />
+            </Tooltip>
+          </Dropdown>
         </Space>
       ),
     },

@@ -32,7 +32,8 @@ export const fetchTickets = async (
   filter: TicketFilter,
   setTickets: (tickets: TicketWithDisplayInfo[]) => void,
   setTotal: (total: number) => void,
-  setLoading: (loading: boolean) => void
+  setLoading: (loading: boolean) => void,
+  onTicketsLoaded?: (tickets: TicketWithDisplayInfo[]) => void
 ) => {
   setLoading(true);
   try {
@@ -88,6 +89,11 @@ export const fetchTickets = async (
 
       // 异步加载责任人名称
       fetchUserNames(enhancedTickets, setTickets);
+      
+      // 如果提供了回调函数，调用它并传入异常单列表
+      if (onTicketsLoaded) {
+        onTicketsLoaded(enhancedTickets);
+      }
     } else {
       message.error('获取异常单列表失败');
     }
