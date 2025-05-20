@@ -18,7 +18,8 @@ export const useTicketColumns = (
       key: 'id',
       title: '序号',
       dataIndex: 'id',
-      width: 80,
+      width: 70,
+      fixed: 'left', // 固定在左侧
       render: (id: number, record: Ticket, index: number) => {
         // 计算当前页的序号，从 1 开始
         const pageIndex = (filter.page - 1) * filter.size + index + 1;
@@ -33,6 +34,8 @@ export const useTicketColumns = (
       key: 'title',
       title: '告警名称',
       dataIndex: 'title',
+      width: 180, // 设置固定宽度
+      ellipsis: true, // 超出部分显示省略号
       render: (title: string, record: Ticket) => (
         <Tooltip title={<div>
           <p><strong>告警名称:</strong> {title}</p>
@@ -49,44 +52,57 @@ export const useTicketColumns = (
       key: 'alarm_desc',
       title: '告警内容',
       dataIndex: 'alarm_desc',
+      width: 200,
       ellipsis: true,
     },
     {
       key: 'service_name',
       title: '服务名称',
       dataIndex: 'service_name_display',
+      width: 120,
+      ellipsis: true,
     },
     {
       key: 'location',
       title: '园区',
       dataIndex: 'location',
+      width: 100,
+      ellipsis: true,
     },
     {
       key: 'factory',
       title: '厂区',
       dataIndex: 'factory',
+      width: 100,
+      ellipsis: true,
     },
     {
       key: 'bu',
       title: '业务单位',
       dataIndex: 'bu',
+      width: 100,
+      ellipsis: true,
     },
     {
       key: 'station',
       title: '工站',
       dataIndex: 'station',
+      width: 100,
+      ellipsis: true,
     },
     {
       key: 'responsible',
       title: '责任人',
       dataIndex: 'responsible_display',
+      width: 120,
+      ellipsis: true,
       render: (users: any[]) => {
         if (!users || users.length === 0) return '-';
         return (
-          <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', maxWidth: '100%' }}>
             {users.map((user, idx) => (
               <Tooltip key={`tooltip-${user.empid || idx}`} title={<pre>{user.tooltip}</pre>}>
-                <Tag key={`tag-${user.empid || idx}`} color="blue" style={{ margin: '2px', cursor: 'pointer' }}>
+                <Tag key={`tag-${user.empid || idx}`} color="blue" style={{ margin: '0', padding: '0 4px', cursor: 'pointer' }}>
                   {user.display}
                 </Tag>
               </Tooltip>
@@ -99,13 +115,15 @@ export const useTicketColumns = (
       key: 'handler',
       title: '处理人',
       dataIndex: 'handler_display',
+      width: 120,
+      ellipsis: true,
       render: (users: any[]) => {
         if (!users || users.length === 0) return '-';
         return (
-          <div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', maxWidth: '100%' }}>
             {users.map((user, idx) => (
               <Tooltip key={`tooltip-handler-${user.empid || idx}`} title={<pre>{user.tooltip}</pre>}>
-                <Tag key={`tag-handler-${user.empid || idx}`} color="green" style={{ margin: '2px', cursor: 'pointer' }}>
+                <Tag key={`tag-handler-${user.empid || idx}`} color="green" style={{ margin: '0', padding: '0 4px', cursor: 'pointer' }}>
                   {user.display}
                 </Tag>
               </Tooltip>
@@ -118,6 +136,7 @@ export const useTicketColumns = (
       key: 'level',
       title: '告警级别',
       dataIndex: 'level',
+      width: 100,
       render: (level: number) => {
         const levelMap: Record<number, { color: string; text: string }> = {
           1: { color: 'blue', text: '提示' },
@@ -136,22 +155,28 @@ export const useTicketColumns = (
       key: 'type_nm',
       title: '告警类别',
       dataIndex: 'type_nm',
+      width: 100,
+      ellipsis: true,
     },
     {
       key: 'webhook',
       title: '通知对象',
       dataIndex: 'webhook',
+      width: 120,
+      ellipsis: true,
     },
     {
       key: 'alarm_num',
       title: '告警次数',
       dataIndex: 'alarm_num',
+      width: 90,
       render: (alarmNum: number | undefined) => alarmNum || 0,
     },
     {
       key: 'is_true',
       title: '是否真实异常',
       dataIndex: 'is_true',
+      width: 110,
       render: (isTrue: boolean | null) => {
         if (isTrue === null) return '未确认';
         return isTrue ? '是' : '否';
@@ -161,6 +186,7 @@ export const useTicketColumns = (
       key: 'is_need',
       title: '是否需要处理',
       dataIndex: 'is_need',
+      width: 120,
       render: (isNeed: boolean | null) => {
         if (isNeed === null) return '未确认';
         return isNeed ? '是' : '否';
@@ -170,6 +196,7 @@ export const useTicketColumns = (
       key: 'status',
       title: '异常单状态',
       dataIndex: 'status',
+      width: 110,
       render: (status: number) => {
         const statusMap: Record<number, { color: string; text: string }> = {
           1: { color: 'orange', text: '待处理' },
@@ -187,23 +214,31 @@ export const useTicketColumns = (
       key: 'created_at',
       title: '创建时间',
       dataIndex: 'created_at',
+      width: 150,
+      ellipsis: true,
     },
     {
       key: 'updated_at',
       title: '更新时间',
       dataIndex: 'updated_at',
+      width: 150,
+      ellipsis: true,
       render: (time: string | null) => time || '-',
     },
     {
       key: 'actions',
       title: '操作',
+      width: 120, // 设置固定宽度
+      fixed: 'right', // 固定在右侧，确保操作栏始终可见
       render: (_: any, record: Ticket) => (
-        <Space>
+        <Space size="small" wrap>
           {record.status !== 3 && (
             <>
               <Button
                 type="link"
+                size="small"
                 onClick={() => handleViewTicket(record.id)}
+                style={{ padding: '0 4px', minWidth: 'auto' }}
               >
                 填写
               </Button>
@@ -224,22 +259,27 @@ export const useTicketColumns = (
                 }}
                 placement="bottomRight"
                 arrow
+                trigger={['click']}
               >
                 <Tooltip title="发送告警">
                   <Button
                     type="text"
+                    size="small"
                     icon={<NotificationOutlined style={{ color: '#1890ff' }} />}
+                    style={{ padding: '0 4px', minWidth: 'auto' }}
                   />
                 </Tooltip>
               </Dropdown>
               
               {/* 设置按钮 */}
               {settingsMenuItems && settingsMenuItems.length > 0 && (
-                <Dropdown menu={{ items: settingsMenuItems }} placement="bottomRight" arrow>
+                <Dropdown menu={{ items: settingsMenuItems }} placement="bottomRight" arrow trigger={['click']}>
                   <Tooltip title="设置">
                     <Button
                       type="text"
+                      size="small"
                       icon={<SettingOutlined style={{ color: '#1890ff' }} />}
+                      style={{ padding: '0 4px', minWidth: 'auto' }}
                     />
                   </Tooltip>
                 </Dropdown>
@@ -285,6 +325,7 @@ export const columnItems = [
 export const initialVisibleColumns = [
   'id',
   'title',
+  'alarm_desc',
   'service_name',
   'location',
   'factory',

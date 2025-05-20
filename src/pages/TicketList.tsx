@@ -487,6 +487,8 @@ const TicketList: React.FC = () => {
             rowKey="id"
             loading={loading}
             pagination={false}
+            scroll={{ x: 'max-content' }}
+            size="small"
           />
 
           <div className="mt-4 flex justify-end">
