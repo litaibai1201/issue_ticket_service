@@ -199,12 +199,25 @@ const TicketList: React.FC = () => {
     }
   };
 
+  // 初始化时检查是否有保存的分页状态
+  useEffect(() => {
+    // 从 ticketStore 中获取之前保存的分页状态
+    const savedPageState = ticketStore.getPageState();
+    // 如果有保存的分页状态，则使用它
+    if (savedPageState && (savedPageState.page !== 1 || savedPageState.size !== 10)) {
+      setFilter(savedPageState);
+    }
+  }, []);
+
   // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
     // 判断是否需要获取白名单数据
     // 只在白名单数据为空时才获取白名单
     const callback = Object.keys(whiteNameMap).length === 0 ? fetchServiceWhiteNames : () => {};
     fetchTickets(filter, setTickets, setTotal, setLoading, callback);
+    
+    // 保存当前分页状态到 store
+    ticketStore.savePageState(filter);
   }, [filter]);
 
   // 处理搜索功能

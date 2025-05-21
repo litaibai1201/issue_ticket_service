@@ -38,7 +38,18 @@ const Login: React.FC = () => {
       // 添加测试日志
       console.log('Token saved:', response.data.content);
       message.success('登录成功');
-      navigate('/tickets');
+      
+      // 获取重定向路径（如果存在）
+      const redirectPath = localStorage.getItem('redirectPath');
+      
+      if (redirectPath) {
+        // 使用重定向路径并清除存储
+        localStorage.removeItem('redirectPath');
+        navigate(redirectPath);
+      } else {
+        // 默认导航到异常单列表页面
+        navigate('/tickets');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       message.error(err.response?.data?.message || '登录失败，请检查用户名和密码');

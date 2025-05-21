@@ -1,5 +1,5 @@
 // src/store/ticketStore.ts
-import { Ticket } from '../types';
+import { Ticket, TicketFilter } from '../types';
 
 // 服务名称缓存接口
 interface ServiceNameCache {
@@ -23,6 +23,11 @@ interface WhiteNameCache {
 
 // 简单的状态存储
 class TicketStore {
+  // 分页状态
+  private pageState: TicketFilter = {
+    page: 1,
+    size: 10
+  };
   private tickets: Ticket[] = [];
   private currentTicket: Ticket | null = null;
   private serviceNameCache: ServiceNameCache = {};
@@ -137,6 +142,16 @@ class TicketStore {
   // 清除所有白名单缓存
   clearWhiteNamesCache() {
     this.whiteNameCache = {};
+  }
+  
+  // 保存分页状态
+  savePageState(filter: TicketFilter) {
+    this.pageState = { ...filter };
+  }
+  
+  // 获取保存的分页状态
+  getPageState(): TicketFilter {
+    return { ...this.pageState };
   }
 }
 
