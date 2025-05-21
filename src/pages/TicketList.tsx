@@ -56,9 +56,10 @@ const TicketList: React.FC = () => {
   const [tickets, setTickets] = useState<TicketWithDisplayInfo[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [total, setTotal] = useState<number>(0);
-  const [filter, setFilter] = useState<TicketFilter>({
-    page: 1,
-    size: 10,
+  const [filter, setFilter] = useState<TicketFilter>(() => {
+    // 初始化时先从 ticketStore 获取之前保存的分页状态
+    const savedPageState = ticketStore.getPageState();
+    return savedPageState || { page: 1, size: 10 };
   });
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -199,25 +200,12 @@ const TicketList: React.FC = () => {
     }
   };
 
-  // 初始化时检查是否有保存的分页状态
-  useEffect(() => {
-    // 从 ticketStore 中获取之前保存的分页状态
-    const savedPageState = ticketStore.getPageState();
-    // 如果有保存的分页状态，则使用它
-    if (savedPageState && (savedPageState.page !== 1 || savedPageState.size !== 10)) {
-      setFilter(savedPageState);
-    }
-  }, []);
-
   // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
     // 判断是否需要获取白名单数据
     // 只在白名单数据为空时才获取白名单
     const callback = Object.keys(whiteNameMap).length === 0 ? fetchServiceWhiteNames : () => {};
     fetchTickets(filter, setTickets, setTotal, setLoading, callback);
-    
-    // 保存当前分页状态到 store
-    ticketStore.savePageState(filter);
   }, [filter]);
 
   // 处理搜索功能
@@ -261,33 +249,51 @@ const TicketList: React.FC = () => {
 
     console.log('Form values after filtering:', filteredValues);
 
-    // 更新过滤条件，并重置页码
-    setFilter((prev) => {
-      // 创建一个只包含基本属性的新对象
-      const baseFilter: TicketFilter = {
-        page: 1, // 重置页码
-        size: prev.size // 保持原有的每页数量
-      };
+    // 创建一个新的过滤器对象
+    const baseFilter: TicketFilter = {
+      page: 1, // 重置页码
+      size: filter.size // 保持原有的每页数量
+    };
 
-      // 将过滤后的值合并到新对象
-      const newFilter = { ...baseFilter, ...filteredValues };
-      console.log('New filter state:', newFilter);
-      return newFilter;
-    });
+    // 将过滤后的值合并到新对象
+    const newFilter = { ...baseFilter, ...filteredValues };
+    console.log('New filter state:', newFilter);
+    
+    // 更新过滤器状态
+    setFilter(newFilter);
+    
+    // 同时保存到 store
+    ticketStore.savePageState(newFilter);
   };
 
   // 处理翻页
   const handlePageChange = (page: number, pageSize?: number) => {
-    setFilter((prev) => ({
-      ...prev,
+    const newFilter = {
+      ...filter,
       page,
-      size: pageSize || prev.size,
-    }));
+      size: pageSize || filter.size,
+    };
+    
+    // 更新过滤器状态
+    setFilter(newFilter);
+    
+    // 同时保存到 store
+    ticketStore.savePageState(newFilter);
   };
 
   // 处理页码大小变化
   const handlePageSizeChange = (current: number, size: number) => {
-    setFilter((prev) => ({ ...prev, page: 1, size: size }));
+    const newFilter = { 
+      ...filter, 
+      page: 1, 
+      size: size 
+    };
+    
+    // 更新过滤器状态
+    setFilter(newFilter);
+    
+    // 同时保存到 store
+    ticketStore.savePageState(newFilter);
   };
 
   // 这里已经使用从工具库导入的 levelMap 和 statusMap 函数
@@ -324,7 +330,9 @@ const TicketList: React.FC = () => {
         serviceName = ticketStore.getCachedServiceName(ticket.service_token);
         serviceType = ticketStore.getCachedServiceType(ticket.service_token);
       }
-      const text = '<font color=#F75000>**' + serviceName + '**</font>\n\n告警地址: ' + ticket.location + '--' + ticket.factory + '--' + ticket.bu + '\n\n告警名稱: ' + ticket.title + '\n\n告警內容: [' + ticket.alarm_desc + '](' + 'http://test' + ')\n\n告警類別: ' + ticket.type_nm + '\n\n告警級別: ' + levelMap(ticket.level) + '\n\n告警次數: ' + ticket.alarm_num + '\n\n告警狀態: ' + statusMap(ticket.status) + '\n\n初告警時間: ' + ticket.created_at + '\n\n異常單地址: [http://test](' + 'http://test' + ')'
+
+      const ticketUrl = `${window.location.origin}/tickets/${ticket.id}`
+      const text = '<font color=#F75000>**' + serviceName + '**</font>\n\n告警地址: ' + ticket.location + '--' + ticket.factory + '--' + ticket.bu + '\n\n告警名稱: ' + ticket.title + '\n\n告警內容: [' + ticket.alarm_desc + '](' + ticketUrl + ')\n\n告警類別: ' + ticket.type_nm + '\n\n告警級別: ' + levelMap(ticket.level) + '\n\n告警次數: ' + ticket.alarm_num + '\n\n告警狀態: ' + statusMap(ticket.status) + '\n\n初告警時間: ' + ticket.created_at + '\n\n異常單地址: [' + ticketUrl + '](' + ticketUrl + ')'
 
       if (type === '个人' && ticket.responsible && ticket.responsible.length > 0) {
         // 创建FormData对象而不是JSON对象
@@ -468,21 +476,17 @@ const TicketList: React.FC = () => {
     // 重置表单
     form.resetFields();
     
-    // 重置过滤条件，但保留白名单数据
-    setFilter({
+    // 创建新的过滤条件，重置为第1页，但保留每页数量
+    const newFilter = {
       page: 1,
       size: filter.size
-    });
+    };
     
-    // 仅更新UI显示，而不重新获取数据
-    fetchTickets(
-      { page: 1, size: filter.size },
-      setTickets,
-      setTotal,
-      setLoading,
-      // 传入一个空函数，防止重新获取白名单数据
-      () => {}
-    );
+    // 更新过滤条件
+    setFilter(newFilter);
+    
+    // 保存到 store
+    ticketStore.savePageState(newFilter);
     
     message.success('已重置所有筛选条件');
   };
