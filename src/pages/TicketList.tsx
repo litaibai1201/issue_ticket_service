@@ -91,8 +91,10 @@ const TicketList: React.FC = () => {
           // 从缓存中获取用户名称，如果有的话
           const cachedUserName = ticketStore.getCachedUserName(workNo);
           if (cachedUserName) {
+            console.log('Using cached user name');
             setUserDisplayName(cachedUserName);
           } else {
+            console.log('Fetching user name from API');
             const response = await searchUserData(workNo);
             if (response.data && response.data.code === 'S10000') {
               const userData = response.data.content; // 获取第一条记录
@@ -110,7 +112,7 @@ const TicketList: React.FC = () => {
 
       fetchUserName();
       
-      // 获取筛选数据
+      // 获取筛选数据（已经在方法内优先从缓存获取）
       fetchFilterData();
     } else {
       // 如果没有token或解析失败，重定向到登录页
@@ -122,15 +124,46 @@ const TicketList: React.FC = () => {
   const fetchFilterData = async () => {
     try {
       setFilterDataLoading(true);
+      
+      // 优先从缓存中获取数据
+      const cachedFilterData = ticketStore.getFilterData();
+      
+      if (cachedFilterData) {
+        // 使用缓存数据
+        console.log('Using cached filter data');
+        setLocationOptions(cachedFilterData.location);
+        setFactoryOptions(cachedFilterData.factory);
+        setBuOptions(cachedFilterData.bu);
+        setStationOptions(cachedFilterData.station);
+        setFilterDataLoading(false);
+        return;
+      }
+      
+      // 缓存中没有数据，从接口获取
+      console.log('Fetching filter data from API');
       const response = await getFilterData();
       if (response.data && response.data.code === 'S10000') {
         const { bu, factory, location, station } = response.data.content;
         
         // 将字符串数组转换为选项格式
-        setLocationOptions(location.map(item => ({ id: item, name: item })));
-        setFactoryOptions(factory.map(item => ({ id: item, name: item })));
-        setBuOptions(bu.map(item => ({ id: item, name: item })));
-        setStationOptions(station.map(item => ({ id: item, name: item })));
+        const locationOptions = location.map(item => ({ id: item, name: item }));
+        const factoryOptions = factory.map(item => ({ id: item, name: item }));
+        const buOptions = bu.map(item => ({ id: item, name: item }));
+        const stationOptions = station.map(item => ({ id: item, name: item }));
+        
+        // 更新状态
+        setLocationOptions(locationOptions);
+        setFactoryOptions(factoryOptions);
+        setBuOptions(buOptions);
+        setStationOptions(stationOptions);
+        
+        // 缓存数据
+        ticketStore.saveFilterData({
+          location: locationOptions,
+          factory: factoryOptions,
+          bu: buOptions,
+          station: stationOptions
+        });
       }
     } catch (error) {
       console.error('Failed to fetch filter data:', error);
@@ -167,17 +200,39 @@ const TicketList: React.FC = () => {
       return;
     }
     
-    console.log(`Fetching white names for ${uniqueTokens.length} unique service tokens`);
-    setWhiteNameLoading(true);
+    // 获取缓存中的白名单数据
+    const cachedWhiteNames = ticketStore.getAllWhiteNames();
+    const tokensToFetch: string[] = [];
     const newWhiteNameMap: Record<string, string[]> = {};
     
+    // 从缓存中获取现有的数据
+    uniqueTokens.forEach(token => {
+      if (cachedWhiteNames[token]) {
+        // 如果缓存中存在该 token 的白名单数据，直接使用
+        newWhiteNameMap[token] = cachedWhiteNames[token];
+      } else {
+        // 否则添加到需要获取的列表中
+        tokensToFetch.push(token);
+      }
+    });
+    
+    // 如果所有 token 都在缓存中，则不需要再调用接口
+    if (tokensToFetch.length === 0) {
+      console.log('All white names found in cache');
+      setWhiteNameMap(newWhiteNameMap);
+      return;
+    }
+    
+    console.log(`Fetching white names for ${tokensToFetch.length} uncached service tokens`);
+    setWhiteNameLoading(true);
+    
     try {
-      // 对每个 service_token 调用接口
-      for (const token of uniqueTokens) {
+      // 对每个未缓存的 service_token 调用接口
+      for (const token of tokensToFetch) {
         try {
           const response = await getServiceWhiteName(token);
           if (response.data && response.data.code === 'S10000') {
-            // 假设返回的数据在 content 字段中，并且是标题数组
+            // 处理返回的数据
             if (response.data.content && Array.isArray(response.data.content)) {
               newWhiteNameMap[token] = response.data.content;
             } else if (response.data.content && Array.isArray(response.data.content.titles)) {
@@ -186,13 +241,17 @@ const TicketList: React.FC = () => {
           }
         } catch (err) {
           console.error(`Failed to fetch white name for token ${token}:`, err);
-          // 单个 token 请求失败不影响整体流程，继续请求下一个
+          // 单个 token 请求失败不影响整体流程
         }
       }
       
       // 更新白名单映射
       setWhiteNameMap(newWhiteNameMap);
-      console.log('White name data fetched:', newWhiteNameMap);
+      
+      // 批量保存新数据到缓存
+      ticketStore.batchSaveWhiteNames(newWhiteNameMap);
+      
+      console.log('White name data updated:', newWhiteNameMap);
     } catch (error) {
       console.error('Failed to fetch service white names:', error);
     } finally {
@@ -203,9 +262,22 @@ const TicketList: React.FC = () => {
   // 只在filter状态改变时才获取异常单，而非在表单值变化时
   useEffect(() => {
     // 判断是否需要获取白名单数据
-    // 只在白名单数据为空时才获取白名单
-    const callback = Object.keys(whiteNameMap).length === 0 ? fetchServiceWhiteNames : () => {};
-    fetchTickets(filter, setTickets, setTotal, setLoading, callback);
+    // 从ticketStore中获取当前缓存的白名单数据
+    const cachedWhiteNames = ticketStore.getAllWhiteNames();
+    const cachedWhiteNamesCount = Object.keys(cachedWhiteNames).length;
+    
+    // 打印缓存状态信息
+    console.log(`Current whiteNameMap has ${Object.keys(whiteNameMap).length} items, cache has ${cachedWhiteNamesCount} items`);
+    
+    // 如果本地没有白名单数据，但缓存中有，则我们先用缓存中的数据
+    if (Object.keys(whiteNameMap).length === 0 && cachedWhiteNamesCount > 0) {
+      console.log('Using cached white names');
+      setWhiteNameMap(cachedWhiteNames);
+    }
+    
+    // 始终获取异常单数据，白名单数据将在回调中获取
+    // fetchServiceWhiteNames 方法会优先从缓存中获取数据
+    fetchTickets(filter, setTickets, setTotal, setLoading, fetchServiceWhiteNames);
   }, [filter]);
 
   // 处理搜索功能
@@ -578,10 +650,14 @@ const TicketList: React.FC = () => {
       // 检查响应状态
       if (response.data && response.data.code === 'S10000') {
         // 更新本地白名单映射
-        setWhiteNameMap(prev => ({
-          ...prev,
+        const updatedWhiteNameMap = {
+          ...whiteNameMap,
           [serviceToken]: newWhiteNames
-        }));
+        };
+        setWhiteNameMap(updatedWhiteNameMap);
+        
+        // 同时更新缓存
+        ticketStore.updateWhiteNames(serviceToken, newWhiteNames);
         
         // 显示成功消息
         message.success({
@@ -614,7 +690,16 @@ const TicketList: React.FC = () => {
     // 检查是否有服务白名单数据
     if (Object.keys(whiteNameMap).length === 0) {
       message.info('正在加载服务白名单数据...');
-      // 如果没有数据，尝试重新加载
+      // 如果没有数据，先检查缓存
+      const cachedWhiteNames = ticketStore.getAllWhiteNames();
+      if (Object.keys(cachedWhiteNames).length > 0) {
+        // 直接使用缓存数据
+        setWhiteNameMap(cachedWhiteNames);
+        message.success(`从缓存中加载了 ${Object.keys(cachedWhiteNames).length} 个服务令牌的白名单数据`);
+        return;
+      }
+      
+      // 缓存中也没有，尝试重新加载
       if (tickets.length > 0) {
         fetchServiceWhiteNames(tickets);
       }

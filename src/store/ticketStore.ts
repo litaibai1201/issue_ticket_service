@@ -28,6 +28,14 @@ class TicketStore {
     page: 1,
     size: 10
   };
+  
+  // 筛选数据缓存
+  private filterData: {
+    location: {id: string; name: string}[];
+    factory: {id: string; name: string}[];
+    bu: {id: string; name: string}[];
+    station: {id: string; name: string}[];
+  } | null = null;
   private tickets: Ticket[] = [];
   private currentTicket: Ticket | null = null;
   private serviceNameCache: ServiceNameCache = {};
@@ -144,6 +152,16 @@ class TicketStore {
     this.whiteNameCache = {};
   }
   
+  // 获取全部白名单缓存
+  getAllWhiteNames(): WhiteNameCache {
+    return { ...this.whiteNameCache };
+  }
+  
+  // 批量保存白名单
+  batchSaveWhiteNames(whiteNameMap: Record<string, string[]>) {
+    this.whiteNameCache = { ...this.whiteNameCache, ...whiteNameMap };
+  }
+  
   // 保存分页状态
   savePageState(filter: TicketFilter) {
     this.pageState = { ...filter };
@@ -152,6 +170,26 @@ class TicketStore {
   // 获取保存的分页状态
   getPageState(): TicketFilter {
     return { ...this.pageState };
+  }
+  
+  // 保存筛选数据
+  saveFilterData(data: {
+    location: {id: string; name: string}[];
+    factory: {id: string; name: string}[];
+    bu: {id: string; name: string}[];
+    station: {id: string; name: string}[];
+  }) {
+    this.filterData = { ...data };
+  }
+  
+  // 获取筛选数据
+  getFilterData() {
+    return this.filterData;
+  }
+  
+  // 清除筛选数据缓存
+  clearFilterData() {
+    this.filterData = null;
   }
 }
 
